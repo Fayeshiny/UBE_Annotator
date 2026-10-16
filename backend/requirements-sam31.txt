@@ -1,0 +1,11 @@
+# Install CUDA PyTorch first, then run from the project root:
+# uv pip install --python backend/.venv/bin/python -r backend/requirements-sam31.txt
+# SAM source revision: 7f473cfd983d5eb43040ff608f66bff0d7bdcb53
+-e .deps/sam3
+# sam3 currently imports pkg_resources at runtime.
+setuptools<81
+# Additional modules imported by the video inference path.
+einops
+pycocotools
+psutil
+scipy

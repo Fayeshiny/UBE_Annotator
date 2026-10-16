@@ -1,0 +1,19 @@
+# 医疗数据与运行时文件只保存在本地/内网服务器
+data/
+data-*/
+*.sqlite3*
+backend/.venv/
+**/__pycache__/
+*.egg-info/
+frontend/node_modules/
+frontend/dist/
+.DS_Store
+.env
+.claude/
+*.tsbuildinfo
+
+.deps/
+
+models/
+
+sample-videos/
