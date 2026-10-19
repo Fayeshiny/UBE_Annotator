@@ -240,4 +240,23 @@ export interface SamSession {
   frames: number[];
   objects: number[];
   backend: string | null;
+  candidate_job?: CandidateJob | null;
+}
+
+export interface CandidateMask {
+  id: number;
+  rle: RLE;
+  area: number;
+  bbox: number[];
+  point: number[];
+}
+
+export interface CandidateJob {
+  id: string;
+  frame_idx: number;
+  time_ms: number;
+  status: "queued" | "running" | "completed" | "cancelled" | "error";
+  progress: number;
+  error: string | null;
+  candidates?: CandidateMask[];
 }

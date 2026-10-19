@@ -110,19 +110,23 @@ class Sam3Backend(SamBackend):
         return res if obj_id is None else {obj_id: res.get(obj_id)}
 
     def prompt(self, session, frame, obj_id, points, labels, box):
+        import torch
+
         w, h = self.size[session]
         pts, labs = list(points), list(labels)
         if box is not None and not pts:
             pts, labs = [[(box[0] + box[2]) / 2, (box[1] + box[3]) / 2]], [1]
         rel = [[x / w, y / h] for x, y in pts]
-        r = self.predictor.handle_request(request={
-            "type": "add_prompt",
-            "session_id": session,
-            "frame_index": frame,
-            "points": rel,
-            "point_labels": labs,
-            "obj_id": obj_id,
-        })
+        # 候选生成由后台线程执行，推理上下文不能依赖模型加载线程。
+        with torch.inference_mode(), torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+            r = self.predictor.handle_request(request={
+                "type": "add_prompt",
+                "session_id": session,
+                "frame_index": frame,
+                "points": rel,
+                "point_labels": labs,
+                "obj_id": obj_id,
+            })
         m = self._extract(r["outputs"], obj_id)[obj_id]
         return m if m is not None else np.zeros((h, w), dtype=bool)
 

@@ -23,9 +23,9 @@ import { ANCHOR_FIELDS, normalizeAnchorSamples, startSegment } from "../lib/ann"
 import { api, ApiError } from "../lib/api";
 import { mergeMaskIssues } from "../lib/checks";
 import { fmtTime, frameAt } from "../lib/time";
-import type { Annotation, AssignmentPayload, FrameMask, MaskObject, SamSession } from "../lib/types";
+import type { Annotation, AssignmentPayload, CandidateMask, FrameMask, MaskObject, SamSession } from "../lib/types";
 
-type Tab = "samples" | "segments" | "events" | "milestones" | "masks" | "checks" | "history";
+type Tab = "segments" | "samples" | "events" | "milestones" | "masks" | "checks" | "history";
 
 const VIS_KEYS: Record<string, string> = { v: "V", n: "N", u: "U" };
 const CONTEXT_KEYS: Record<string, string> = { Digit1: "C1", Digit2: "C2", Digit3: "C3", Digit4: "C4", Digit5: "C5", Digit6: "C6", Digit0: "CU" };
@@ -43,7 +43,7 @@ export default function WorkspacePage() {
   const [frameTimes, setFrameTimes] = useState<number[]>([]);
   const [saveState, setSaveState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
   const [error, setError] = useState("");
-  const [tab, setTab] = useState<Tab>("samples");
+  const [tab, setTab] = useState<Tab>("segments");
   const [currentMs, setCurrentMs] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState(1);
@@ -60,6 +60,10 @@ export default function WorkspacePage() {
   const creatingSessionRef = useRef(false);
   const [frameMasks, setFrameMasks] = useState<FrameMask[]>([]);
   const [showMasks, setShowMasks] = useState(true);
+  const [candidatePreview, setCandidatePreview] = useState<{ sessionId: string; frame: number; masks: CandidateMask[] } | null>(null);
+  const showCandidates = useCallback((sessionId: string, frame: number, masks: CandidateMask[]) => {
+    setCandidatePreview({ sessionId, frame, masks });
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const undo = useRef<Annotation[]>([]);
@@ -533,6 +537,8 @@ export default function WorkspacePage() {
             videoW={c.width}
             videoH={c.height}
             masks={frameMasks}
+            candidates={tab === "masks" && !playing && candidatePreview?.sessionId === session?.id
+              && candidatePreview?.frame === frame ? candidatePreview.masks : []}
             classColors={classColors}
             activeObject={activeObject}
             tool={gold && tab === "masks" ? tool : "none"}
@@ -575,8 +581,8 @@ export default function WorkspacePage() {
           <div className="tabs">
             {(
               [
-                ["samples", "采样点"],
                 ["segments", "分段"],
+                ["samples", "采样点"],
                 ["events", `事件 ${ann.events.length || ""}`],
                 ...(gold ? [["milestones", "里程碑"], ["masks", "分割"]] : []),
                 ["checks", errors ? `检查 (${errors})` : "检查"],
@@ -589,8 +595,8 @@ export default function WorkspacePage() {
             ))}
           </div>
           <div className="tab-body">
-            {tab === "samples" && <SamplePanel ws={ws} />}
             {tab === "segments" && <SegmentsPanel ws={ws} />}
+            {tab === "samples" && <SamplePanel ws={ws} />}
             {tab === "events" && <EventsPanel ws={ws} />}
             {tab === "milestones" && <MilestonePanel ws={ws} selected={selectedMilestone} setSelected={setSelectedMilestone} />}
             {tab === "masks" && (
@@ -612,6 +618,8 @@ export default function WorkspacePage() {
                 setShowMasks={setShowMasks}
                 onError={setError}
                 seekFrame={seekFrame}
+                pauseVideo={() => { videoRef.current?.pause(); setTool("none"); }}
+                onCandidatePreview={showCandidates}
               />
             )}
             {tab === "checks" && <ChecksPanel ws={ws} />}

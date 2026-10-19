@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { hexToRgb, paintRle } from "../lib/rle";
-import type { FrameMask } from "../lib/types";
+import type { CandidateMask, FrameMask } from "../lib/types";
 
 export type Tool = "none" | "point" | "box" | "poly-add" | "poly-sub";
 
@@ -10,6 +10,7 @@ interface Props {
   videoW: number;
   videoH: number;
   masks: FrameMask[];
+  candidates?: CandidateMask[];
   classColors: Record<string, string>;
   activeObject: number | null;
   tool: Tool;
@@ -71,10 +72,16 @@ export default function VideoStage(p: Props) {
         paintRle(img, m.rle, [r, gg, b, m.exact ? alpha : Math.round(alpha * 0.5)]);
       }
     }
+    for (const candidate of p.candidates ?? []) {
+      // 不同候选使用不同颜色，便于查看重叠区域；不赋予解剖类别。
+      const palette = ["#22d3ee", "#f97316", "#a78bfa", "#4ade80", "#f472b6", "#facc15"];
+      const [r, gg, b] = hexToRgb(palette[(candidate.id - 1) % palette.length]);
+      paintRle(img, candidate.rle, [r, gg, b, 100]);
+    }
     g.putImageData(img, 0, 0);
     draw();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [p.masks, p.showMasks, p.activeObject, p.videoW, p.videoH, p.classColors]);
+  }, [p.masks, p.candidates, p.showMasks, p.activeObject, p.videoW, p.videoH, p.classColors]);
 
   useEffect(draw);
 

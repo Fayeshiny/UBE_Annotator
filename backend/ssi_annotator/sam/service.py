@@ -15,11 +15,31 @@ from dataclasses import dataclass, field
 
 from .. import config, db, media, rle
 from . import get_backend
+from .candidates import accept_mask, grid_points
 
 _gpu_lock = threading.Lock()
 _sessions: dict[str, "Session"] = {}
 _sessions_lock = threading.Lock()
 IDLE_TIMEOUT_SEC = 30 * 60
+
+
+@dataclass
+class CandidateJob:
+    id: str
+    frame_idx: int
+    time_ms: int
+    status: str = "queued"
+    progress: float = 0.0
+    error: str | None = None
+    candidates: list[dict] = field(default_factory=list)
+    cancel: bool = False
+
+    def public(self, include_masks=True):
+        result = {"id": self.id, "frame_idx": self.frame_idx, "time_ms": self.time_ms,
+                  "status": self.status, "progress": self.progress, "error": self.error}
+        if include_masks:
+            result["candidates"] = self.candidates if self.status == "completed" else []
+        return result
 
 
 @dataclass
@@ -40,6 +60,11 @@ class Session:
     objects: dict[int, int] = field(default_factory=dict)  # mask_objects.id → obj_id
     last_used: float = field(default_factory=time.time)
     cancel: bool = False
+    candidate_job: CandidateJob | None = None
+
+    @property
+    def candidates_busy(self):
+        return self.candidate_job is not None and self.candidate_job.status in ("queued", "running")
 
     def public(self) -> dict:
         return {
@@ -54,6 +79,7 @@ class Session:
             "frames": self.frames,
             "objects": list(self.objects.keys()),
             "backend": get_backend().name if self.status != "error" else None,
+            "candidate_job": self.candidate_job.public(False) if self.candidate_job else None,
         }
 
     def local(self, global_idx: int) -> int:
@@ -71,7 +97,8 @@ class Session:
 def _cleanup_idle():
     now = time.time()
     with _sessions_lock:
-        stale = [s for s in _sessions.values() if now - s.last_used > IDLE_TIMEOUT_SEC and s.status != "propagating"]
+        stale = [s for s in _sessions.values() if now - s.last_used > IDLE_TIMEOUT_SEC
+                 and s.status != "propagating" and not s.candidates_busy]
     for s in stale:
         close_session(s.id)
 
@@ -130,6 +157,8 @@ def close_session(sid: str):
     if s is None:
         return
     s.cancel = True
+    if s.candidate_job:
+        s.candidate_job.cancel = True
     s.status = "closed"
     if s.backend_sid:
         try:
@@ -164,6 +193,8 @@ def save_frame(object_pk: int, frame_idx: int, time_ms: int, mask, source: str, 
 
 
 def prompt(s: Session, object_pk: int, frame_idx: int, points, labels, box, user_id: int) -> tuple[int, dict]:
+    if s.candidates_busy:
+        raise RuntimeError("正在生成自动候选，请等待完成或取消后再添加提示")
     if s.status != "ready":
         raise RuntimeError(f"会话状态为 {s.status}，暂不能添加提示")
     obj = attach_object(s, object_pk)
@@ -188,12 +219,79 @@ def prompt(s: Session, object_pk: int, frame_idx: int, points, labels, box, user
 
 
 def start_propagation(s: Session, start_frame_idx: int, direction: str, user_id: int):
+    if s.candidates_busy:
+        raise RuntimeError("正在生成自动候选，请等待完成或取消后再传播")
     if s.status != "ready":
         raise RuntimeError(f"会话状态为 {s.status}，暂不能传播")
     if not s.objects:
         raise RuntimeError("请先在关键帧上为至少一个结构添加提示")
     s.status, s.progress, s.cancel = "propagating", 0.0, False
     threading.Thread(target=_propagate, args=(s, s.local(start_frame_idx), direction, user_id), daemon=True).start()
+
+
+def start_candidates(s: Session, case: dict, frame_idx: int) -> CandidateJob:
+    times = media.frame_times(s.case_id)
+    if not 0 <= frame_idx < len(times) or not s.start_ms <= times[frame_idx] <= s.end_ms:
+        raise ValueError("请选择当前分割片段内的一帧")
+    with _sessions_lock:
+        if s.status != "ready" or s.candidates_busy:
+            raise RuntimeError("片段尚未就绪或已有任务正在运行，请稍后再生成候选")
+        job = CandidateJob(uuid.uuid4().hex[:12], frame_idx, times[frame_idx])
+        s.candidate_job = job
+    threading.Thread(target=_generate_candidates, args=(s, case, job), daemon=True).start()
+    return job
+
+
+def _generate_candidates(s: Session, case: dict, job: CandidateJob):
+    """使用独立单帧会话；不读取或写入正式目标、掩膜及复核状态。"""
+    directory = config.cache_dir() / "candidates" / job.id
+    backend = None
+    backend_sid = None
+    try:
+        job.status = "running"
+        times = media.frame_times(s.case_id)
+        video = media.case_video_dir(s.case_id) / case["video_file"]
+        # 使用用户选中的精确帧；即使不在片段抽帧序列中，也不替换为邻近帧。
+        frames = media.extract_frames(video, times, job.frame_idx, job.frame_idx, 1, directory)
+        if frames != [job.frame_idx] or len(list(directory.glob("*.jpg"))) != 1:
+            raise RuntimeError("无法读取所选视频帧")
+        if job.cancel:
+            return
+        with _gpu_lock:
+            backend = get_backend()
+            backend_sid = backend.start(directory, s.width, s.height)
+        accepted = []
+        results = []
+        points = grid_points(s.width, s.height)
+        for index, point in enumerate(points):
+            if job.cancel:
+                return
+            with _gpu_lock:
+                mask = backend.prompt(backend_sid, 0, 1, [point], [1], None)
+                # 每次独立尝试一个目标，下一位置不继承上一次提示和目标状态。
+                backend.remove_object(backend_sid, 1)
+            if mask is not None:
+                mask = accept_mask(mask, s.width, s.height, accepted)
+                if mask is not None:
+                    accepted.append(mask.copy())
+                    results.append({"id": len(results) + 1, "rle": rle.encode(mask),
+                                    "area": int(mask.sum()), "bbox": rle.bbox(mask), "point": point})
+            job.progress = (index + 1) / len(points)
+        if not job.cancel:
+            job.candidates = results
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        job.error = f"候选生成失败：{e}"
+    finally:
+        if backend_sid is not None:
+            try:
+                with _gpu_lock:
+                    backend.close(backend_sid)
+            except Exception as e:  # noqa: BLE001
+                traceback.print_exc()
+                job.error = job.error or f"候选会话清理失败：{e}"
+        shutil.rmtree(directory, ignore_errors=True)
+        job.status = "cancelled" if job.cancel else ("error" if job.error else "completed")
 
 
 def _propagate(s: Session, start_local: int, direction: str, user_id: int):

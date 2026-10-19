@@ -1030,6 +1030,38 @@ class PromptIn(BaseModel):
     box: list[float] | None = None
 
 
+class CandidatesIn(BaseModel):
+    frame_idx: int
+
+
+@app.post("/api/sam/sessions/{sid}/candidates")
+def create_candidates(sid: str, body: CandidatesIn, user=Depends(current_user)):
+    s = _session_or_404(sid, user)
+    try:
+        return sam.start_candidates(s, _case_or_404(s.case_id), body.frame_idx).public()
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(409, str(e)) from e
+
+
+@app.get("/api/sam/sessions/{sid}/candidates")
+def get_candidates(sid: str, user=Depends(current_user)):
+    s = sam.get_session(sid)
+    if s is None:
+        raise HTTPException(404, "会话不存在或已过期")
+    _check_view(user, _assignment_or_404(s.assignment_id))
+    return s.candidate_job.public() if s.candidate_job else None
+
+
+@app.post("/api/sam/sessions/{sid}/candidates/cancel")
+def cancel_candidates(sid: str, user=Depends(current_user)):
+    s = _session_or_404(sid, user)
+    if s.candidate_job and s.candidates_busy:
+        s.candidate_job.cancel = True
+    return {"ok": True}
+
+
 @app.post("/api/sam/sessions/{sid}/prompt")
 def sam_prompt(sid: str, body: PromptIn, user=Depends(current_user)):
     s = _session_or_404(sid, user)
