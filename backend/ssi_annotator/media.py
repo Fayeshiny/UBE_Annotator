@@ -9,6 +9,7 @@ import csv
 import json
 import shutil
 import subprocess
+import uuid
 from functools import lru_cache
 from pathlib import Path
 
@@ -58,7 +59,9 @@ def transcode_for_web(src: Path, dst: Path, start_sec: float | None = None, end_
     - 去掉音轨和全部容器元数据（拍摄设备、时间、可能的患者信息）。
     画面内烧录的文字/患者信息无法自动去除，需要在导入前人工确认。
     """
-    cmd = ["ffmpeg", "-y", "-v", "error"]
+    # 中断时只留下临时文件，不把不完整 MP4 发布为正式播放文件。
+    temporary = dst.with_name(f".{dst.stem}.{uuid.uuid4().hex}.partial{dst.suffix}")
+    cmd = ["ffmpeg", "-nostdin", "-y", "-v", "error"]
     if start_sec is not None:
         cmd += ["-ss", f"{start_sec:.3f}"]
     cmd += ["-i", str(src)]
@@ -71,9 +74,13 @@ def transcode_for_web(src: Path, dst: Path, start_sec: float | None = None, end_
         "-c:v", "libx264", "-preset", "medium", "-crf", "18", "-pix_fmt", "yuv420p",
         "-g", "15", "-keyint_min", "15", "-sc_threshold", "0",
         "-movflags", "+faststart",
-        str(dst),
+        str(temporary),
     ]
-    _run(cmd)
+    try:
+        _run(cmd)
+        temporary.replace(dst)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def build_frame_map(video: Path, out_csv: Path) -> list[int]:
@@ -103,7 +110,7 @@ def case_video_dir(case_id: str) -> Path:
 
 
 @lru_cache(maxsize=64)
-def _load_frame_times(path: str, mtime: float) -> tuple[int, ...]:
+def _load_frame_times(path: str, size: int, mtime_ns: int, ctime_ns: int, inode: int) -> tuple[int, ...]:
     with open(path) as f:
         r = csv.DictReader(f)
         return tuple(int(row["time_ms"]) for row in r)
@@ -113,7 +120,8 @@ def frame_times(case_id: str) -> tuple[int, ...]:
     p = case_video_dir(case_id) / "frame_timestamp_map.csv"
     if not p.exists():
         return ()
-    return _load_frame_times(str(p), p.stat().st_mtime)
+    stat = p.stat()
+    return _load_frame_times(str(p), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
 
 
 def time_to_frame(times: tuple[int, ...], time_ms: int | None, fps: float | None = None) -> int | None:
@@ -128,31 +136,105 @@ def time_to_frame(times: tuple[int, ...], time_ms: int | None, fps: float | None
     return None
 
 
-def extract_frames(video: Path, times: tuple[int, ...], first: int, last: int, stride: int, out_dir: Path) -> list[int]:
-    """把 [first, last] 区间、间隔 stride 的帧抽取为 JPEG 序列（00000.jpg ...），返回对应的全局帧号。
+@lru_cache(maxsize=16)
+def _load_pts(path: str, size: int, mtime_ns: int, ctime_ns: int, inode: int) -> tuple[float, ...]:
+    with open(path) as f:
+        return tuple(float(row["pts_sec"]) for row in csv.DictReader(f))
 
-    先精确 seek 到首帧之前，再按相对帧号选帧，避免长视频从头解码。
+
+def frame_pts(case_id: str) -> tuple[float, ...]:
+    """Unrounded display timestamps, including a possible nonzero stream start."""
+    path = case_video_dir(case_id) / "frame_timestamp_map.csv"
+    stat = path.stat()
+    return _load_pts(str(path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+
+
+@lru_cache(maxsize=8)
+def _probe_pts(path: str, size: int, mtime_ns: int, ctime_ns: int, inode: int) -> tuple[float, ...]:
+    out = _run([
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "packet=pts_time", "-of", "csv=p=0", path,
+    ])
+    return tuple(sorted(float(x.strip().rstrip(",")) for x in out.splitlines()
+                        if x.strip() and x.strip() != "N/A"))
+
+
+def extract_frame_batch(video: Path, pts: tuple[float, ...], first: int, last: int,
+                        stride: int, out_dir: Path, timeout: float | None = None) -> list[int]:
+    """Seek to the preceding keyframe and stop after the requested output count.
+
+    A threshold between the preceding and requested frame avoids rounded-ms and
+    29.97/VFR off-by-one errors. Keep absolute PTS: input accurate_seek otherwise
+    applies the stream start offset twice for some nonzero-start MP4s.
     """
+    if stride < 1 or first < 0 or last < first or last >= len(pts):
+        raise MediaError("抽帧区间无效")
+    threshold = (pts[first - 1] + pts[first]) / 2 if first else pts[0] - 0.00001
+    indices = list(range(first, last + 1, stride))
+    out_dir.mkdir(parents=True, exist_ok=True)
+    vf = f"select='gte(t,{threshold:.9f})',select='not(mod(n\\,{stride}))'"
+    cmd = [
+        "ffmpeg", "-nostdin", "-y", "-v", "error", "-threads", "2",
+        "-filter_threads", "1", "-copyts", "-seek_timestamp", "1",
+        "-ss", f"{threshold:.9f}", "-noaccurate_seek", "-noautorotate", "-i", str(video),
+        "-map", "0:v:0", "-an", "-sn", "-dn", "-vf", vf,
+        "-fps_mode", "passthrough", "-frames:v", str(len(indices)),
+        "-c:v", "mjpeg", "-threads", "1", "-q:v", "2", "-start_number", "0",
+        str(out_dir / "%05d.jpg"),
+    ]
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired as e:
+        raise MediaError("帧图片生成超时，请稍后重试") from e
+    if p.returncode:
+        raise MediaError(f"帧图片生成失败：{p.stderr.strip()[-800:]}")
+    if len(list(out_dir.glob("*.jpg"))) != len(indices):
+        raise MediaError("视频帧与时间戳表不一致，请重新处理视频")
+    return indices
+
+
+def extract_frames(video: Path, times: tuple[int, ...], first: int, last: int, stride: int, out_dir: Path) -> list[int]:
+    """Extract exact display-order frames for SAM, using the same PTS as the viewer."""
     if out_dir.exists():
         shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True)
     first = max(0, first)
     last = min(last, len(times) - 1)
-    if last < first:
-        raise MediaError("抽帧区间为空")
-    half_frame = 0.0
-    if len(times) > 1:
-        half_frame = max(1, (times[min(first + 1, len(times) - 1)] - times[first])) / 2000
-    seek = max(0.0, times[first] / 1000 - half_frame)
-    count = last - first + 1
-    sel = f"select='lt(n\\,{count})*not(mod(n\\,{stride}))'"
-    _run([
-        "ffmpeg", "-y", "-v", "error",
-        "-ss", f"{seek:.4f}", "-i", str(video),
-        "-vf", sel, "-fps_mode", "passthrough",
-        "-q:v", "2", "-start_number", "0",
-        str(out_dir / "%05d.jpg"),
-    ])
-    produced = sorted(out_dir.glob("*.jpg"))
-    idxs = list(range(first, last + 1, stride))[: len(produced)]
-    return idxs
+    map_path = video.parent / "frame_timestamp_map.csv"
+    if map_path.is_file():
+        stat = map_path.stat()
+        pts = _load_pts(str(map_path), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+    else:
+        stat = video.stat()
+        pts = _probe_pts(str(video), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+    if len(pts) != len(times):
+        raise MediaError("视频帧与时间戳表不一致，请重新处理视频")
+    return extract_frame_batch(video, pts, first, last, stride, out_dir)
+
+
+@lru_cache(maxsize=16)
+def _packet_ranges(path: str, size: int, mtime_ns: int, ctime_ns: int, inode: int) -> tuple:
+    """Keyframe groups with byte bounds; no video decoding or frame-rate conversion."""
+    info = json.loads(_run([
+        "ffprobe", "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "packet=pts_time,pos,size,flags", "-of", "json", path,
+    ]))
+    groups = []
+    current = []
+    for packet in info.get("packets", []):
+        if not all(k in packet for k in ("pts_time", "pos", "size")):
+            raise MediaError("视频缺少可定位的 packet 索引")
+        if "K" in packet.get("flags", "") and current:
+            groups.append(current)
+            current = []
+        current.append((float(packet["pts_time"]), int(packet["pos"]), int(packet["size"])))
+    if current:
+        groups.append(current)
+    return tuple((min(p[0] for p in g), max(p[0] for p in g),
+                  min(p[1] for p in g), max(p[1] + p[2] for p in g) - 1) for g in groups)
+
+
+def video_byte_index(video: Path, pts: tuple[float, ...]) -> list[list[int]]:
+    stat = video.stat()
+    groups = _packet_ranges(str(video), stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns, stat.st_ino)
+    return [[bisect.bisect_left(pts, first), bisect.bisect_right(pts, last) - 1, start, end]
+            for first, last, start, end in groups if 0 <= start <= end < stat.st_size]

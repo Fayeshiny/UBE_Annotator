@@ -1,0 +1,90 @@
+{
+  "timestamp": "2026-10-20T02:20:47.589Z",
+  "browser": "151.0.7922.169",
+  "mode": "video",
+  "environment": {
+    "mbps": 20,
+    "latencyMs": 80,
+    "httpCacheDisabled": true,
+    "cpuThrottle": false
+  },
+  "methodology": "Media-level benchmark, not full app interaction. Video currentTime to seeked + two animation frames; image fetch + decode + two animation frames. CDP encoded bytes are approximate window deltas (video can download ahead). OS file cache is not flushed. Decoded reuse is a harness cache, not an app LRU integration test.",
+  "rows": [
+    {
+      "phase": "first_pass",
+      "frame": 54000,
+      "elapsedMs": 447.20000076293945,
+      "currentTime": 900.1085,
+      "transferredBytes": 875056
+    },
+    {
+      "phase": "first_pass",
+      "frame": 108000,
+      "elapsedMs": 396.19999980926514,
+      "currentTime": 1800.175,
+      "transferredBytes": 744556
+    },
+    {
+      "phase": "first_pass",
+      "frame": 24000,
+      "elapsedMs": 410.8999996185303,
+      "currentTime": 400.0915,
+      "transferredBytes": 797056
+    },
+    {
+      "phase": "first_pass",
+      "frame": 84000,
+      "elapsedMs": 164.69999980926514,
+      "currentTime": 1400.1415,
+      "transferredBytes": 193704
+    },
+    {
+      "phase": "repeat",
+      "frame": 54000,
+      "elapsedMs": 115.5,
+      "currentTime": 900.1085,
+      "transferredBytes": 236508
+    },
+    {
+      "phase": "repeat",
+      "frame": 108000,
+      "elapsedMs": 97.10000038146973,
+      "currentTime": 1800.175,
+      "transferredBytes": 45000
+    },
+    {
+      "phase": "repeat",
+      "frame": 24000,
+      "elapsedMs": 95.39999961853027,
+      "currentTime": 400.0915,
+      "transferredBytes": 37500
+    },
+    {
+      "phase": "repeat",
+      "frame": 84000,
+      "elapsedMs": 46.5,
+      "currentTime": 1400.1415,
+      "transferredBytes": 0
+    }
+  ],
+  "summary": {
+    "first_pass": {
+      "n": 4,
+      "medianMs": 403.5499997138977,
+      "p95Ms": 447.20000076293945,
+      "transferredBytes": 2610372,
+      "cacheResponses": {
+        "video": 4
+      }
+    },
+    "repeat": {
+      "n": 4,
+      "medianMs": 96.25,
+      "p95Ms": 115.5,
+      "transferredBytes": 319008,
+      "cacheResponses": {
+        "video": 4
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-21",
+  "fixture": "Isolated synthetic 16seconds,30fps,320x240;5second cores;1second contexts. Worker initially gated by test wrapper.",
+  "status": "passed",
+  "checks": [
+    "Before preparation: task list withholds entry; direct assignment URL shows bulk progress without mounting player or requesting individual segment generation",
+    "OPFS: all four clips exist before annotation; navigating every subtask reads prebuilt metadata/media and never starts another encoder; cached frame150 maps to clip-local1second",
+    "IndexedDB: all four clips exist before annotation; navigating every subtask reads prebuilt metadata/media and never starts another encoder; cached frame150 maps to clip-local1second"
+  ],
+  "pageErrors": [],
+  "totalBuilds": 4,
+  "annotationEntryGenerationRequests": 0,
+  "limitations": "Functional verification; network transfer and browser decoding latency still depend on actual SSH connection and client."
+}

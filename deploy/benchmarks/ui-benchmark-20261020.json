@@ -1,0 +1,192 @@
+{
+  "method": "Actual application keyboard / ruler clicks. 20Mbps/80ms CDP network; server cache initially partly warm from media tests; automatic POST sparse warmup intercepted to avoid full case warm in isolated benchmark. Adjacent UI prefetch allowed, pause1200ms before each action. Measures keydown or mousedown to matching data-frame-ready plus2paintcycles.",
+  "rows": [
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 25.800000190734863,
+      "requestedFrame": "1",
+      "displayedFrame": "1",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 27.800000190734863,
+      "requestedFrame": "2",
+      "displayedFrame": "2",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 30,
+      "requestedFrame": "3",
+      "displayedFrame": "3",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 28.90000057220459,
+      "requestedFrame": "4",
+      "displayedFrame": "4",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 28.700000762939453,
+      "requestedFrame": "5",
+      "displayedFrame": "5",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 361.5,
+      "requestedFrame": "303",
+      "displayedFrame": "303",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "345",
+      "frameCached": "false"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 295.5,
+      "requestedFrame": "603",
+      "displayedFrame": "603",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "267",
+      "frameCached": "false"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 378.8999996185303,
+      "requestedFrame": "903",
+      "displayedFrame": "903",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "369",
+      "frameCached": "false"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 312.79999923706055,
+      "requestedFrame": "1203",
+      "displayedFrame": "1203",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "295",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 900107,
+      "elapsedMs": 368.19999980926514,
+      "requestedFrame": "53920",
+      "displayedFrame": "53920",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "347",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 1800174,
+      "elapsedMs": 365.5,
+      "requestedFrame": "107932",
+      "displayedFrame": "107932",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "354",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 400090,
+      "elapsedMs": 412.30000019073486,
+      "requestedFrame": "23972",
+      "displayedFrame": "23972",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "399",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 1400140,
+      "elapsedMs": 377.69999980926514,
+      "requestedFrame": "83957",
+      "displayedFrame": "83957",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "360",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 400090,
+      "elapsedMs": 180.5,
+      "requestedFrame": "23972",
+      "displayedFrame": "23972",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "163",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 1800174,
+      "elapsedMs": 162.60000038146973,
+      "requestedFrame": "107932",
+      "displayedFrame": "107932",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "145",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 900107,
+      "elapsedMs": 206.60000038146973,
+      "requestedFrame": "53920",
+      "displayedFrame": "53920",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "164",
+      "frameCached": "false"
+    },
+    {
+      "kind": "ruler",
+      "target": 1400140,
+      "elapsedMs": 170.30000019073486,
+      "requestedFrame": "83957",
+      "displayedFrame": "83957",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "154",
+      "frameCached": "false"
+    }
+  ]
+}

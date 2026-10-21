@@ -26,6 +26,8 @@ export interface WS {
   editable: boolean;
   currentMs: number;
   duration: number;
+  segmentStart?: number;
+  segmentEnd?: number;
   seek: (ms: number) => void;
   playRange: (from: number, to: number) => void;
   protocol: Protocol;
@@ -44,7 +46,7 @@ export interface WS {
 export function currentSampleTime(ws: WS): number {
   const iv = ws.protocol.settings.sampling_interval_ms;
   if (ws.selectedSample != null) return ws.selectedSample;
-  return Math.min(Math.round(ws.currentMs / iv) * iv, Math.floor((ws.duration - 1) / iv) * iv);
+  return Math.max(Math.ceil((ws.segmentStart ?? 0) / iv) * iv, Math.min(Math.round(ws.currentMs / iv) * iv, Math.floor(((ws.segmentEnd ?? ws.duration) - 1) / iv) * iv));
 }
 
 export function setSampleValue(ws: WS, t: number, field: keyof Sample, value: string | undefined) {
@@ -81,7 +83,7 @@ export function copyPrevAnchors(ws: WS, t: number) {
 
 export function nextIncompleteSample(ws: WS, from: number): number | null {
   const iv = ws.protocol.settings.sampling_interval_ms;
-  const all = sampleTimes(ws.duration, iv);
+  const all = sampleTimes(ws.duration, iv).filter(t => t >= (ws.segmentStart ?? 0) && t < (ws.segmentEnd ?? ws.duration));
   // 先向后找，找不到再从头找
   const order = [...all.filter((t) => t > from), ...all.filter((t) => t <= from)];
   for (const t of order) {
@@ -100,7 +102,7 @@ export function SamplePanel({ ws }: { ws: WS }) {
   const s = normalizeSampleAnchors(ws.ann.samples[String(t)] ?? {}, ctx, protocol.settings);
   const ev = labelAt(ws.ann.evaluable, t);
   const applic = ctx ? protocol.settings.anchor_applicability[ctx] ?? [] : [];
-  const all = sampleTimes(ws.duration, iv);
+  const all = sampleTimes(ws.duration, iv).filter(t => t >= (ws.segmentStart ?? 0) && t < (ws.segmentEnd ?? ws.duration));
   const evalSamples = all.filter((x) => labelAt(ws.ann.evaluable, x) === "E1");
   const done = evalSamples.filter((x) => sampleComplete(ws.ann.samples[String(x)])).length;
   const go = (x: number | null) => {
@@ -230,7 +232,7 @@ export function SegmentsPanel({ ws }: { ws: WS }) {
         </div>
         <table className="table compact">
           <tbody>
-            {parts.map((p, i) => (
+            {parts.map((p, i) => segmentEnd(parts, i, ws.duration) <= (ws.segmentStart ?? 0) || p.start_ms >= (ws.segmentEnd ?? ws.duration) ? null : (
               <tr key={`${p.start_ms}-${i}`} className={t >= p.start_ms && t < segmentEnd(parts, i, ws.duration) ? "current" : ""}>
                 <td>
                   <a onClick={() => ws.seek(p.start_ms)}>{fmtTime(p.start_ms)}</a> – <a onClick={() => ws.seek(Math.max(0, segmentEnd(parts, i, ws.duration) - 1))}>{fmtTime(segmentEnd(parts, i, ws.duration))}</a>
@@ -250,7 +252,7 @@ export function SegmentsPanel({ ws }: { ws: WS }) {
                   </select>
                 </td>
                 <td className="actions">
-                  {i > 0 && ws.editable && (
+                  {i > 0 && p.start_ms >= (ws.segmentStart ?? 0) && ws.editable && (
                     <>
                       <button
                         className="btn tiny"
@@ -326,7 +328,7 @@ export function markEvent(ws: WS, what: "onset" | "offset" | "recovery") {
 
 export function EventsPanel({ ws }: { ws: WS }) {
   const { protocol } = ws;
-  const evs = sortEvents(ws.ann.events);
+  const evs = sortEvents(ws.ann.events).filter(e => e.onset_ms < (ws.segmentEnd ?? ws.duration) && (e.recovery_ms ?? Infinity) >= (ws.segmentStart ?? 0));
   const open = evs.find((e) => e.offset_ms == null);
   const merges = ws.issues.filter((i) => i.fix?.type === "merge_events");
   const minDur = protocol.settings.ol_min_duration_ms;

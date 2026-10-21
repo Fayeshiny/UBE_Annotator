@@ -79,7 +79,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<CasesPage />} />
-            <Route path="/a/:aid" element={<WorkspacePage />} />
+            <Route path="/a/:aid" element={<WorkspacePage key={loc.pathname} />} />
             <Route path="/project" element={isReviewer ? <ProjectPage /> : <Navigate to="/" />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

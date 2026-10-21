@@ -1,0 +1,104 @@
+{
+  "method": "Actual application keyboard / ruler clicks. 20Mbps/80ms CDP network; server cache initially partly warm from media tests; automatic POST sparse warmup intercepted to avoid full case warm in isolated benchmark. Adjacent UI prefetch allowed, pause1200ms before each action. Measures keydown or mousedown to matching data-frame-ready plus2paintcycles.",
+  "rows": [
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 22.300000190734863,
+      "requestedFrame": "1",
+      "displayedFrame": "1",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 28.40000057220459,
+      "requestedFrame": "2",
+      "displayedFrame": "2",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 27.5,
+      "requestedFrame": "3",
+      "displayedFrame": "3",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 28.600000381469727,
+      "requestedFrame": "4",
+      "displayedFrame": "4",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowRight",
+      "elapsedMs": 27.5,
+      "requestedFrame": "5",
+      "displayedFrame": "5",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 162.69999980926514,
+      "requestedFrame": "303",
+      "displayedFrame": "303",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "145",
+      "frameCached": "false"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 28.40000057220459,
+      "requestedFrame": "603",
+      "displayedFrame": "603",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 29.699999809265137,
+      "requestedFrame": "903",
+      "displayedFrame": "903",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "ArrowDown",
+      "elapsedMs": 30.5,
+      "requestedFrame": "1203",
+      "displayedFrame": "1203",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    }
+  ]
+}

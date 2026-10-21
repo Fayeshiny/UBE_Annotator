@@ -7,6 +7,10 @@ import type { Annotation, MaskObject, Protocol } from "../lib/types";
 interface Props {
   ann: Annotation;
   duration: number;
+  coreStart?: number;
+  coreEnd?: number;
+  rangeStart?: number;
+  rangeEnd?: number;
   currentMs: number;
   protocol: Protocol;
   gold: boolean;
@@ -33,6 +37,8 @@ type Drag =
   | { kind: "pan"; x0: number; v0: number; v1: number };
 
 export default function Timeline(p: Props) {
+  const lower = p.rangeStart ?? 0, upper = p.rangeEnd ?? p.duration;
+  const extent = Math.max(1, upper - lower);
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(800);
@@ -66,8 +72,8 @@ export default function Timeline(p: Props) {
   const height = y + 2;
 
   useEffect(() => {
-    setView([0, Math.max(p.duration, 1000)]);
-  }, [p.duration]);
+    setView([lower, upper]);
+  }, [lower, upper]);
 
   useEffect(() => {
     const el = wrap.current;
@@ -83,10 +89,10 @@ export default function Timeline(p: Props) {
     const [v0, v1] = view;
     if (p.currentMs < v0 || p.currentMs > v1) {
       const span = v1 - v0;
-      const n0 = Math.max(0, Math.min(p.duration - span, p.currentMs - span * 0.1));
+      const n0 = Math.max(lower, Math.min(upper - span, p.currentMs - span * 0.1));
       setView([n0, n0 + span]);
     }
-  }, [p.currentMs, view, p.duration]);
+  }, [p.currentMs, view, lower, upper]);
 
   const plotW = Math.max(10, width - LABEL_W);
   const xOf = useCallback((t: number) => LABEL_W + ((t - view[0]) / (view[1] - view[0])) * plotW, [view, plotW]);
@@ -273,6 +279,11 @@ export default function Timeline(p: Props) {
       });
     }
 
+    if (p.coreStart != null && p.coreEnd != null) {
+      g.fillStyle = "rgba(100,116,139,0.22)";
+      g.fillRect(LABEL_W, RULER_H, Math.max(0,xOf(p.coreStart)-LABEL_W), height-RULER_H);
+      g.fillRect(xOf(p.coreEnd), RULER_H, Math.max(0,width-xOf(p.coreEnd)), height-RULER_H);
+    }
     // 播放头
     const xp = xOf(p.currentMs);
     g.strokeStyle = "#2563eb";
@@ -295,7 +306,7 @@ export default function Timeline(p: Props) {
     const row = Object.entries(rowY).find(([, [ry, rh]]) => yy >= ry && yy < ry + rh)?.[0];
     if (yy < RULER_H) return { kind: "scrub" };
     if (!p.editable) return null;
-    const near = (t: number | null | undefined) => t != null && Math.abs(xOf(t) - x) <= 5;
+    const near = (t: number | null | undefined) => t != null && t >= (p.coreStart ?? 0) && t < (p.coreEnd ?? p.duration) && Math.abs(xOf(t) - x) <= 5;
     if (row === "evaluable" || row === "context") {
       const parts = ann[row];
       for (let i = 1; i < parts.length; i++) if (near(parts[i].start_ms)) return { kind: "boundary", track: row, idx: i };
@@ -364,7 +375,7 @@ export default function Timeline(p: Props) {
     else if (drag.kind === "pan") {
       const dt = ((x - drag.x0) / plotW) * (drag.v1 - drag.v0);
       const span = drag.v1 - drag.v0;
-      const n0 = Math.max(0, Math.min(p.duration - span, drag.v0 - dt));
+      const n0 = Math.max(lower, Math.min(upper - span, drag.v0 - dt));
       setView([n0, n0 + span]);
     } else setPreview(applyDrag(drag, tOf(x)));
   }
@@ -380,15 +391,15 @@ export default function Timeline(p: Props) {
     const span = view[1] - view[0];
     if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
       const d = ((e.shiftKey ? e.deltaY : e.deltaX) / plotW) * span;
-      const n0 = Math.max(0, Math.min(p.duration - span, view[0] + d));
+      const n0 = Math.max(lower, Math.min(upper - span, view[0] + d));
       setView([n0, n0 + span]);
       return;
     }
     const factor = Math.exp(e.deltaY * 0.002);
-    const ns = Math.max(2000, Math.min(p.duration, span * factor));
+    const ns = Math.min(extent, Math.max(2000, span * factor));
     const anchor = x >= LABEL_W ? tOf(x) : p.currentMs;
     const ratio = (anchor - view[0]) / span;
-    const n0 = Math.max(0, Math.min(p.duration - ns, anchor - ratio * ns));
+    const n0 = Math.max(lower, Math.min(upper - ns, anchor - ratio * ns));
     setView([n0, n0 + ns]);
   }
 
@@ -402,8 +413,8 @@ export default function Timeline(p: Props) {
   }, []);
 
   function zoomTo(span: number) {
-    const ns = Math.min(p.duration, span);
-    const n0 = Math.max(0, Math.min(p.duration - ns, p.currentMs - ns / 2));
+    const ns = Math.min(extent, span);
+    const n0 = Math.max(lower, Math.min(upper - ns, p.currentMs - ns / 2));
     setView([n0, n0 + ns]);
   }
 
@@ -423,7 +434,7 @@ export default function Timeline(p: Props) {
             {l}
           </button>
         ))}
-        <button className="btn tiny" onClick={() => setView([0, p.duration])}>
+        <button className="btn tiny" onClick={() => setView([lower, upper])}>
           全程
         </button>
       </div>

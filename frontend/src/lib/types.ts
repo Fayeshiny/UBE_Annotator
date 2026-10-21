@@ -82,6 +82,8 @@ export interface Annotation {
 }
 
 export interface AssignmentSummary {
+  segment_total?: number;
+  segment_completed?: number;
   id: number;
   user_id: number;
   role: string;
@@ -93,7 +95,16 @@ export interface AssignmentSummary {
   display_name: string;
 }
 
+export interface SegmentPreparation {
+  status: "waiting" | "queued" | "processing" | "ready" | "error";
+  total: number;
+  ready: number;
+  failed: number;
+  error: string | null;
+}
+
 export interface Case {
+  segment_preparation?: SegmentPreparation;
   case_id: string;
   surgeon_id: string | null;
   center_id: string | null;
@@ -107,6 +118,7 @@ export interface Case {
   width: number;
   height: number;
   media_status: string;
+  media_revision?: string;
   media_error: string | null;
   status: "open" | "locked";
   final_assignment_id: number | null;
@@ -170,7 +182,23 @@ export interface ConsensusHistory {
   created_at: number;
 }
 
+export interface VideoSegment {
+  index: number;
+  start_ms: number;
+  end_ms: number;
+  first_frame: number;
+  last_frame: number;
+  clip_first_frame: number;
+  clip_last_frame: number;
+  context_start_ms: number;
+  context_end_ms: number;
+  revision: string;
+  completed: boolean;
+  completed_at: number | null;
+}
+
 export interface AssignmentPayload {
+  segments: VideoSegment[];
   assignment: {
     id: number;
     case_id: string;

@@ -1,3 +1,6 @@
+import asyncio
+import threading
+import struct
 import itertools
 from contextlib import asynccontextmanager
 import json
@@ -10,7 +13,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import analysis, auth, cases, config, consensus, db, export, media, rle, rules
+from . import analysis, auth, cases, config, consensus, db, export, frame_cache, http_diagnostics, media, rle, rules, segments
+from .video_response import PlaybackFileResponse
 from .auth import current_user, require_role
 from .protocol import ANCHOR_FIELDS, CONTEXTS, MASK_CLASSES, empty_annotation, protocol_dict
 from .sam import get_backend
@@ -19,11 +23,26 @@ from .sam import service as sam
 @asynccontextmanager
 async def lifespan(_app):
     db.init_db()
-    yield
+    close_http_diagnostics = http_diagnostics.install()
+    cases.mark_interrupted_imports()
+    await asyncio.to_thread(segments.start_preparation_service)
+    try:
+        yield
+    finally:
+        await asyncio.to_thread(segments.stop_preparation_service)
+        await asyncio.to_thread(frame_cache.close_all)
+        close_http_diagnostics()
 
 
 app = FastAPI(title="UBE SSI 标注平台", version="0.1.0", lifespan=lifespan)
 REVIEWERS = ("admin", "reviewer")
+
+
+@app.get("/api/health")
+def health():
+    # A cheap readiness probe, without exposing accounts, paths or case data.
+    db.connect().execute("SELECT 1").fetchone()
+    return {"status": "ok"}
 
 
 # ------------------------------------------------------------------ 认证
@@ -186,7 +205,7 @@ def delete_user(uid: int, user=Depends(require_role("admin"))):
                       ("review_log", "user_id"), ("mask_objects", "verified_by"),
                       ("mask_frames", "updated_by"), ("mask_history", "user_id"),
                       ("consensus_reviews", "reviewer_id"), ("user_deletion_log", "actor_id"),
-                      ("case_rule_snapshots", "created_by"))
+                      ("case_rule_snapshots", "created_by"), ("cases", "deleted_by"))
         linked = any(conn.execute(f"SELECT 1 FROM {table} WHERE {field} = ? LIMIT 1", (uid,)).fetchone()
                      for table, field in references)
         mode = "archived" if linked else "deleted"
@@ -215,11 +234,16 @@ def _case_or_404(case_id: str) -> dict:
 
 def _assignment_summary(case_id: str) -> list[dict]:
     rows = db.connect().execute(
-        "SELECT a.id, a.user_id, a.role, a.status, a.version, a.updated_at, u.username, u.display_name "
+        "SELECT a.id, a.user_id, a.role, a.status, a.version, a.updated_at, a.data, u.username, u.display_name "
         "FROM assignments a JOIN users u ON u.id = a.user_id WHERE a.case_id = ? ORDER BY a.id", (case_id,),
     ).fetchall()
     out = [dict(r) for r in rows]
+    c = cases.get_case(case_id)
     for a in out:
+        progress = segments.progress(c,a)
+        a['segment_total'] = len(progress)
+        a['segment_completed'] = sum(s['completed'] for s in progress)
+        a.pop('data',None)
         a["consensus"] = consensus.summary(a)
     return out
 
@@ -228,18 +252,67 @@ def _assignment_summary(case_id: str) -> list[dict]:
 def list_cases(user=Depends(current_user)):
     conn = db.connect()
     if user["role"] in REVIEWERS:
-        rows = conn.execute("SELECT * FROM cases ORDER BY case_id").fetchall()
+        rows = conn.execute("SELECT * FROM cases WHERE deleted_at IS NULL ORDER BY case_id").fetchall()
     else:
         rows = conn.execute(
-            "SELECT DISTINCT c.* FROM cases c JOIN assignments a ON a.case_id = c.case_id WHERE a.user_id = ? "
+            "SELECT DISTINCT c.* FROM cases c JOIN assignments a ON a.case_id = c.case_id WHERE a.user_id = ? AND c.deleted_at IS NULL "
             "ORDER BY c.case_id", (user["id"],),
         ).fetchall()
     out = []
     for r in rows:
         c = dict(r)
+        c["media_revision"] = frame_cache.revision(c)
+        c["segment_preparation"] = segments.preparation(c)
         c["assignments"] = _assignment_summary(c["case_id"])
         out.append(c)
     return out
+
+
+@app.get("/api/cases/deleted")
+def deleted_cases(user=Depends(require_role("admin"))):
+    return [dict(r) for r in db.connect().execute(
+        "SELECT case_id,deleted_at,deleted_by,notes FROM cases WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC")]
+
+
+class CaseDeleteIn(BaseModel):
+    confirm_case_id: str
+
+
+@app.delete("/api/cases/{case_id}")
+def delete_case(case_id: str, body: CaseDeleteIn, user=Depends(require_role("admin"))):
+    if body.confirm_case_id != case_id:
+        raise HTTPException(400,"请输入完整病例编号以确认删除")
+    with db.tx() as conn:
+        c = _case_or_404(case_id)
+        if c['status'] == 'locked':
+            raise HTTPException(409,"病例已锁定，请先解锁再删除")
+        if c['media_status'] == 'processing':
+            raise HTTPException(409,"原视频正在导入，请处理结束后再删除病例")
+        aids = [r['id'] for r in conn.execute('SELECT id FROM assignments WHERE case_id=?',(case_id,))]
+        if any(s.status in ('loading','propagating') or s.candidates_busy for aid in aids for s in sam.list_sessions(aid)):
+            raise HTTPException(409,"请先等待 SAM 加载、传播或候选生成完成，再删除病例")
+        conn.execute('UPDATE cases SET deleted_at=?,deleted_by=?,updated_at=? WHERE case_id=?',
+                     (db.now(),user['id'],db.now(),case_id))
+        conn.execute("UPDATE video_segment_jobs SET status='obsolete',updated_at=? WHERE case_id=? AND status IN ('queued','processing')",
+                     (db.now(),case_id))
+        _log(conn,case_id,None,user,'delete_case','移入回收站；保留视频、任务及标注')
+    return {'ok':True,'case_id':case_id,'retained':True}
+
+
+@app.post("/api/cases/{case_id}/restore")
+def restore_case(case_id: str, user=Depends(require_role("admin"))):
+    with db.tx() as conn:
+        c = cases.get_case(case_id,include_deleted=True)
+        if c is None:
+            raise HTTPException(404,"病例不存在")
+        if c.get('deleted_at') is None:
+            raise HTTPException(409,"病例未删除")
+        conn.execute('UPDATE cases SET deleted_at=NULL,deleted_by=NULL,updated_at=? WHERE case_id=?',(db.now(),case_id))
+        _log(conn,case_id,None,user,'restore_case','从回收站恢复病例与全部原标注')
+    restored = cases.get_case(case_id)
+    if restored['media_status'] == 'ready' and restored.get('media_revision'):
+        segments.enqueue_case(restored,retry=True)
+    return restored
 
 
 class CaseImportIn(BaseModel):
@@ -325,6 +398,8 @@ def patch_case(case_id: str, body: CasePatch, user=Depends(require_role(*REVIEWE
 
 
 def _can_view_case(user, case_id):
+    if cases.get_case(case_id) is None:
+        return False
     if user["role"] in REVIEWERS:
         return True
     r = db.connect().execute(
@@ -339,17 +414,33 @@ def get_case(case_id: str, user=Depends(current_user)):
     if not _can_view_case(user, case_id):
         raise HTTPException(403, "无权限")
     c["assignments"] = _assignment_summary(case_id)
+    c["segment_preparation"] = segments.preparation(c)
     return c
 
 
 @app.get("/api/cases/{case_id}/video")
-def case_video(case_id: str, user=Depends(current_user)):
+@app.head("/api/cases/{case_id}/video")
+def case_video(case_id: str, request: Request, revision: str | None = None, playback: bool = False, user=Depends(current_user)):
     c = _case_or_404(case_id)
     if not _can_view_case(user, case_id):
         raise HTTPException(403, "无权限")
     if c["media_status"] != "ready":
-        raise HTTPException(409, "视频仍在处理")
-    return FileResponse(media.case_video_dir(case_id) / c["video_file"], media_type="video/mp4")
+        detail = "视频仍在处理，请完成后再播放" if c["media_status"] == "processing" else f"视频处理失败：{c['media_error'] or '请联系管理员重新处理'}"
+        raise HTTPException(409, detail)
+    current_revision = frame_cache.revision(c)
+    video = media.case_video_dir(case_id) / c["video_file"] if c["video_file"] else None
+    if current_revision is None or video is None or not video.is_file():
+        raise HTTPException(409, "视频文件或时间戳表缺失，请联系管理员重新处理")
+    if revision is not None and revision != current_revision:
+        raise HTTPException(409, "视频已更新，请刷新页面后继续标注")
+    # A HEAD request exposes only authenticated file metadata; FileResponse also
+    # handles byte ranges without reading the whole video into application RAM.
+    # Use the shared media revision for If-Range, including frame-map changes.
+    response = PlaybackFileResponse if playback else FileResponse
+    return response(video, media_type="video/mp4", headers={
+        "Cache-Control": "private, no-cache", "Vary": "Cookie",
+        "X-Media-Revision": current_revision, "ETag": f'"{current_revision}"',
+    })
 
 
 @app.get("/api/cases/{case_id}/frames")
@@ -357,6 +448,136 @@ def case_frames(case_id: str, user=Depends(current_user)):
     if not _can_view_case(user, case_id):
         raise HTTPException(403, "无权限")
     return list(media.frame_times(case_id))
+
+
+def _frame_source(case_id: str, user, revision: str | None = None):
+    c = _case_or_404(case_id)
+    if not _can_view_case(user, case_id):
+        raise HTTPException(403, "无权限")
+    if c["media_status"] != "ready":
+        raise HTTPException(409, "视频尚未准备完成，请等待处理完成后再加载画面")
+    try:
+        src = frame_cache.source(c)
+    except FileNotFoundError as e:
+        raise HTTPException(409, "视频文件或时间戳表缺失，请联系管理员重新处理") from e
+    except (media.MediaError, frame_cache.SourceChanged) as e:
+        raise HTTPException(409, str(e)) from e
+    if revision is not None and revision != src.revision:
+        raise HTTPException(409, "视频已更新，请刷新页面后继续标注")
+    return src
+
+
+@app.get("/api/cases/{case_id}/video-index")
+async def case_video_index(case_id: str, revision: str | None = None, user=Depends(current_user)):
+    src = await asyncio.to_thread(_frame_source, case_id, user, revision)
+    try:
+        ranges = await asyncio.to_thread(media.video_byte_index, src.video, src.pts)
+    except (media.MediaError, FileNotFoundError) as e:
+        raise HTTPException(503, "视频字节索引暂不可用，可继续单帧标注") from e
+    # Recheck both file and map after probing before publishing offsets.
+    await asyncio.to_thread(_frame_source, case_id, user, src.revision)
+    return JSONResponse({"revision": src.revision, "ranges": ranges}, headers={
+        "Cache-Control": "private, no-cache", "Vary": "Cookie", "X-Media-Revision": src.revision,
+    })
+
+
+@app.get("/api/cases/{case_id}/frame-chunk")
+async def case_frame_chunk(case_id: str, start_frame: int, request: Request, count: int = 5,
+                           exclude_frame: int = -1, revision: str | None = None, user=Depends(current_user)):
+    src = await asyncio.to_thread(_frame_source, case_id, user, revision)
+    if not 1 <= count <= 5:
+        raise HTTPException(422, "帧块最多包含 5 帧")
+    if not 0 <= start_frame < len(src.pts):
+        raise HTTPException(404, "帧号超出视频范围")
+    cancelled = threading.Event()
+    def prepare():
+        manager = frame_cache.manager()
+        frames, parts, total = [], [], 0
+        indices = list(range(start_frame, min(start_frame + count, len(src.pts))))
+        if start_frame <= exclude_frame < start_frame + count:
+            indices.sort(key=lambda idx: (abs(idx - exclude_frame), idx < exclude_frame))
+        for idx in indices:
+            if cancelled.is_set():
+                raise frame_cache.Busy("请求已取消")
+            if idx == exclude_frame:
+                continue
+            data, _ = manager.get(src, idx, prefetch=True, cancelled=cancelled)
+            total += len(data)
+            if total > 8 * 1024 * 1024:
+                raise frame_cache.Busy("附近帧块过大，改用单帧加载")
+            frames.append([idx, len(data)])
+            parts.append(data)
+        metadata = json.dumps({"revision": src.revision, "frames": frames}).encode()
+        return struct.pack(">I", len(metadata)) + metadata + b"".join(parts)
+    task = asyncio.create_task(asyncio.to_thread(prepare))
+    task.add_done_callback(lambda done: done.exception() if not done.cancelled() else None)
+    try:
+        while not task.done():
+            await asyncio.wait({task}, timeout=0.1)
+            if await request.is_disconnected():
+                raise HTTPException(499, "请求已取消")
+        data = await task
+        await asyncio.to_thread(_frame_source, case_id, user, src.revision)
+    except frame_cache.Busy as e:
+        raise HTTPException(429, str(e)) from e
+    except (frame_cache.SourceChanged, FileNotFoundError) as e:
+        raise HTTPException(409, "视频已更新，请刷新页面") from e
+    except media.MediaError as e:
+        raise HTTPException(503, str(e)) from e
+    finally:
+        cancelled.set()
+    return Response(data, media_type="application/vnd.ssi.frame-chunk", headers={
+        "Cache-Control": "private, no-cache", "Vary": "Cookie", "X-Media-Revision": src.revision,
+    })
+
+
+@app.get("/api/cases/{case_id}/frame/{frame_idx}.jpg")
+async def case_frame(case_id: str, frame_idx: int, request: Request, prefetch: bool = False,
+                     revision: str | None = None, user=Depends(current_user)):
+    src = await asyncio.to_thread(_frame_source, case_id, user, revision)
+    if not 0 <= frame_idx < len(src.pts):
+        raise HTTPException(404, "帧号超出视频范围")
+    etag = f'"{src.revision}-{frame_idx}"'
+    headers = {"Cache-Control": "private, no-cache", "ETag": etag, "Vary": "Cookie",
+               "X-Frame-Index": str(frame_idx), "X-Media-Revision": src.revision}
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=304, headers=headers)
+    cache = await asyncio.to_thread(frame_cache.manager)
+    cancelled = threading.Event()
+    task = asyncio.create_task(asyncio.to_thread(
+        cache.get, src, frame_idx, prefetch=prefetch, cancelled=cancelled,
+    ))
+    # Also collect exceptions if ASGI cancels this coroutine during shutdown.
+    task.add_done_callback(lambda done: done.exception() if not done.cancelled() else None)
+    try:
+        while not task.done():
+            await asyncio.wait({task}, timeout=0.1)
+            if await request.is_disconnected():
+                cancelled.set()
+                raise HTTPException(499, "请求已取消")
+        data, hit = await task
+    except frame_cache.Busy as e:
+        raise HTTPException(429 if prefetch else 503, str(e), headers={"Retry-After": "1"}) from e
+    except (frame_cache.SourceChanged, FileNotFoundError) as e:
+        raise HTTPException(409, "视频已更新，请刷新页面后继续标注") from e
+    except media.MediaError as e:
+        raise HTTPException(503, str(e), headers={"Retry-After": "1"}) from e
+    finally:
+        cancelled.set()
+    headers["X-Frame-Cache"] = "HIT" if hit else "MISS"
+    return Response(data, media_type="image/jpeg", headers=headers)
+
+
+class FrameWarmIn(BaseModel):
+    sampling_interval_ms: int
+
+
+@app.post("/api/cases/{case_id}/frame-cache/warm")
+def warm_case_frames(case_id: str, body: FrameWarmIn, user=Depends(current_user)):
+    src = _frame_source(case_id, user)
+    if body.sampling_interval_ms < 1000:
+        raise HTTPException(400, "采样间隔不能小于 1 秒")
+    return frame_cache.manager().request_warm(src, body.sampling_interval_ms)
 
 
 class AssignIn(BaseModel):
@@ -508,7 +729,7 @@ def case_export(case_id: str, assignment_id: int | None = None, include_video: b
 
 
 def _assignment_or_404(aid: int) -> dict:
-    r = db.connect().execute("SELECT * FROM assignments WHERE id = ?", (aid,)).fetchone()
+    r = db.connect().execute("SELECT a.* FROM assignments a JOIN cases c ON c.case_id=a.case_id WHERE a.id = ? AND c.deleted_at IS NULL", (aid,)).fetchone()
     if r is None:
         raise HTTPException(404, "任务不存在")
     return dict(r)
@@ -531,6 +752,7 @@ def _check_view(user, a):
 
 def _assignment_payload(a: dict, user) -> dict:
     c = cases.get_case(a["case_id"])
+    c["segment_preparation"] = segments.preparation(c)
     data = json.loads(a["data"])
     settings = db.get_settings()
     rules_warning = None
@@ -554,6 +776,7 @@ def _assignment_payload(a: dict, user) -> dict:
         "issues": analysis.validate(c, data, settings, objs),
         "metrics": analysis.metrics(c, data, settings),
         "consensus": consensus.summary(a),
+        "segments": segments.progress(c, a),
     }
 
 
@@ -562,6 +785,109 @@ def get_assignment(aid: int, user=Depends(current_user)):
     a = _assignment_or_404(aid)
     _check_view(user, a)
     return _assignment_payload(a, user)
+
+
+class SegmentCompleteIn(BaseModel):
+    completed: bool
+    version: int
+    revision: str
+
+
+@app.post("/api/assignments/{aid}/segments/{index}/completion")
+def segment_completion(aid: int, index: int, body: SegmentCompleteIn, user=Depends(current_user)):
+    with db.tx() as conn:
+        a = _assignment_or_404(aid)
+        c = cases.get_case(a["case_id"])
+        if not _can_edit(user, a, c):
+            raise HTTPException(403, "当前任务不可编辑")
+        if a['version'] != body.version or c['media_revision'] != body.revision:
+            raise HTTPException(409, "任务或视频已更新，请刷新后重试")
+        s = next((s for s in segments.plan(c) if s['index'] == index), None)
+        if s is None:
+            raise HTTPException(404, "子任务不存在")
+        if any(session.status in ('loading', 'propagating') for session in sam.list_sessions(aid)):
+            raise HTTPException(409, "请等待 SAM 任务完成后再标记子任务")
+        if body.completed:
+            conn.execute("INSERT OR REPLACE INTO assignment_segment_progress VALUES (?,?,?,?,?)",
+                         (aid,c['media_revision'],index,segments.fingerprint(a,s),db.now()))
+        else:
+            conn.execute("DELETE FROM assignment_segment_progress WHERE assignment_id=? AND revision=? AND segment_idx=?",
+                         (aid,c['media_revision'],index))
+    return _assignment_payload(_assignment_or_404(aid),user)
+
+
+def _segment_source(case_id, index, user, revision=None):
+    c = cases.get_case(case_id)
+    if c is None:
+        raise HTTPException(404,"病例不存在")
+    if not _can_view_case(user,case_id):
+        raise HTTPException(403,"无权限")
+    s = next((s for s in segments.plan(c) if s['index'] == index),None)
+    if s is None:
+        raise HTTPException(404,"子任务不存在")
+    if revision is not None and revision != s['revision']:
+        raise HTTPException(409,"视频分段已更新，请刷新页面")
+    return c,s
+
+
+class SegmentPlanIn(BaseModel):
+    seconds: int = 300
+    context_seconds: int = 10
+
+
+@app.put("/api/cases/{case_id}/segment-plan")
+def configure_segment_plan(case_id: str, body: SegmentPlanIn, user=Depends(require_role("admin"))):
+    if not 30 <= body.seconds <= 1800 or not 0 <= body.context_seconds <= 30:
+        raise HTTPException(422,"子任务时长需为 30–1800 秒，上下文为 0–30 秒")
+    with db.tx() as conn:
+        c = _case_or_404(case_id)
+        if c['status'] == 'locked' or conn.execute("SELECT 1 FROM assignments WHERE case_id=? AND status IN ('submitted','approved')",(case_id,)).fetchone():
+            raise HTTPException(409,"已提交或锁定的病例不能调整分段，请先重新打开任务")
+        conn.execute("INSERT OR REPLACE INTO video_segment_plans VALUES (?,?,?)", (case_id,body.seconds,body.context_seconds))
+        conn.execute("DELETE FROM assignment_segment_progress WHERE assignment_id IN (SELECT id FROM assignments WHERE case_id=?)", (case_id,))
+    c = cases.get_case(case_id)
+    segments.enqueue_case(c)
+    return segments.plan(c)
+
+
+@app.post("/api/cases/{case_id}/segments/prepare")
+def prepare_case_segments(case_id: str, user=Depends(require_role(*REVIEWERS))):
+    c = _case_or_404(case_id)
+    if c['media_status'] != 'ready' or not c.get('media_revision'):
+        raise HTTPException(409,"请先完成原视频处理")
+    return segments.enqueue_case(c,retry=True)
+
+
+@app.get("/api/cases/{case_id}/segments/{index}")
+@app.post("/api/cases/{case_id}/segments/{index}/prepare")
+def prepare_segment(case_id: str, index: int, user=Depends(current_user)):
+    # The POST alias remains read-only for older clients; neither route starts an encoder.
+    c,s = _segment_source(case_id,index,user)
+    return s | segments.metadata(c,s)
+
+
+@app.get("/api/cases/{case_id}/segments/{index}/video")
+@app.head("/api/cases/{case_id}/segments/{index}/video")
+def segment_video(case_id: str, index: int, request: Request, revision: str | None = None, playback: bool = False, user=Depends(current_user)):
+    c,s = _segment_source(case_id,index,user,revision)
+    video,mapping = segments.paths(c,s)
+    if not video.is_file() or not mapping.is_file():
+        raise HTTPException(409,"子视频尚未生成，请等待片段准备完成")
+    response = PlaybackFileResponse if playback else FileResponse
+    return response(video,media_type='video/mp4',headers={
+        'Cache-Control':'private, no-cache','Vary':'Cookie','X-Media-Revision':s['revision'],'ETag':f'"{s["revision"]}"'})
+
+
+@app.get("/api/cases/{case_id}/segments/{index}/video-index")
+def segment_video_index(case_id: str, index: int, revision: str | None = None, user=Depends(current_user)):
+    c,s = _segment_source(case_id,index,user,revision)
+    video,mapping = segments.paths(c,s)
+    if not video.is_file() or not mapping.is_file():
+        raise HTTPException(409,"子视频尚未生成")
+    import csv
+    with mapping.open() as f:
+        pts = tuple(float(r['pts_sec']) for r in csv.DictReader(f))
+    return JSONResponse({'revision':s['revision'],'ranges':media.video_byte_index(video,pts)},headers={'X-Media-Revision':s['revision']})
 
 
 class DataIn(BaseModel):
@@ -636,6 +962,9 @@ def assignment_action(aid: int, body: ActionIn, user=Depends(current_user)):
         if act == "submit":
             if a["user_id"] != user["id"]:
                 raise HTTPException(403, "只能提交自己的任务")
+            subtasks = segments.progress(c,a)
+            if len(subtasks) > 1 and not all(s['completed'] for s in subtasks):
+                raise HTTPException(409, "请先标记所有视频子任务为已完成，再提交父任务")
             _check_consensus_content(a, c)
             if is_consensus:
                 if user["role"] not in REVIEWERS:
@@ -1122,7 +1451,7 @@ def project_agreement(user=Depends(require_role(*REVIEWERS))):
     conn = db.connect()
     by_pair: dict[str, list] = {}
     all_seqs = []
-    for c in conn.execute("SELECT * FROM cases").fetchall():
+    for c in conn.execute("SELECT * FROM cases WHERE deleted_at IS NULL").fetchall():
         c = dict(c)
         rows = conn.execute(
             "SELECT a.*, u.username FROM assignments a JOIN users u ON u.id = a.user_id "
@@ -1145,7 +1474,7 @@ def sampling_simulation(multiples: str = "1,2,3", user=Depends(require_role(*REV
     base = settings["sampling_interval_ms"]
     ks = [int(x) for x in multiples.split(",") if x.strip()]
     rows = []
-    for c in db.connect().execute("SELECT * FROM cases").fetchall():
+    for c in db.connect().execute("SELECT * FROM cases WHERE deleted_at IS NULL").fetchall():
         c = dict(c)
         for a in export.export_assignments(c, "working"):
             ann = json.loads(a["data"])
@@ -1168,10 +1497,10 @@ def sampling_simulation(multiples: str = "1,2,3", user=Depends(require_role(*REV
 def project_stats(user=Depends(require_role(*REVIEWERS))):
     conn = db.connect()
     return {
-        "cases": conn.execute("SELECT COUNT(*) FROM cases").fetchone()[0],
-        "gold": conn.execute("SELECT COUNT(*) FROM cases WHERE gold_set = 1").fetchone()[0],
-        "locked": conn.execute("SELECT COUNT(*) FROM cases WHERE status = 'locked'").fetchone()[0],
-        "assignments": {r["status"]: r["n"] for r in conn.execute("SELECT status, COUNT(*) AS n FROM assignments GROUP BY status")},
+        "cases": conn.execute("SELECT COUNT(*) FROM cases WHERE deleted_at IS NULL").fetchone()[0],
+        "gold": conn.execute("SELECT COUNT(*) FROM cases WHERE deleted_at IS NULL AND gold_set = 1").fetchone()[0],
+        "locked": conn.execute("SELECT COUNT(*) FROM cases WHERE deleted_at IS NULL AND status = 'locked'").fetchone()[0],
+        "assignments": {r["status"]: r["n"] for r in conn.execute("SELECT a.status, COUNT(*) AS n FROM assignments a JOIN cases c ON c.case_id=a.case_id WHERE c.deleted_at IS NULL GROUP BY a.status")},
     }
 
 
@@ -1193,7 +1522,7 @@ def write_folders(user=Depends(require_role(*REVIEWERS))):
     settings = db.get_settings()
     done = []
     skipped = []
-    for c in db.connect().execute("SELECT * FROM cases WHERE status = 'locked'").fetchall():
+    for c in db.connect().execute("SELECT * FROM cases WHERE deleted_at IS NULL AND status = 'locked'").fetchall():
         try:
             if export.write_case_folder(dict(c), settings):
                 done.append(c["case_id"])
@@ -1209,18 +1538,24 @@ def write_folders(user=Depends(require_role(*REVIEWERS))):
 
 @app.exception_handler(HTTPException)
 async def http_exc(request: Request, exc: HTTPException):
-    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=exc.headers)
 
 
 _static = config.static_dir()
 if _static:
     app.mount("/assets", StaticFiles(directory=_static / "assets"), name="assets")
 
-    @app.get("/{path:path}")
-    def spa(path: str):
-        if path.startswith("api/"):
-            raise HTTPException(404, "Not found")
-        f = _static / path
-        if path and f.is_file():
-            return FileResponse(f)
-        return FileResponse(_static / "index.html")
+
+@app.get("/{path:path}")
+def spa(path: str):
+    if _static is None or path == "api" or path.startswith("api/"):
+        raise HTTPException(404, "Not found")
+    root = _static.resolve()
+    f = (root / path).resolve()
+    # Reject encoded traversal and symlinks escaping the published build.
+    # Never fall back to serving files elsewhere in the checkout/data directory.
+    if not f.is_relative_to(root):
+        raise HTTPException(404, "Not found")
+    if path and f.is_file():
+        return FileResponse(f)
+    return FileResponse(root / "index.html")

@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "Loading target hides previous image and disables timestamp edits; Alt+E and event-onset shortcut attempted while loading.",
+    "Delayed frame150 cannot overwrite frame300; visible JPEG pixel matches synthetic frame300; paused jumps do not seek/request video.",
+    "Ten rapid next-frame shortcuts resolve to frame310.",
+    "No annotation write was emitted by blocked shortcuts.",
+    "Playback starts from the selected still, pause returns to a matching decoded JPEG.",
+    "Sample review range starts at its requested point and automatically pauses at the end with a ready still.",
+    "Playing the final frame returns to a ready still, without a stuck loading state."
+  ],
+  "pageErrors": []
+}

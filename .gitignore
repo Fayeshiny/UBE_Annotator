@@ -17,3 +17,6 @@ frontend/dist/
 models/
 
 sample-videos/
+
+deploy/production.env
+deploy/admin-credentials.txt

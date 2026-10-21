@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-21",
+  "status": "passed",
+  "cacheRecovery": {
+    "checks": [
+      "After a native media error, committed video-cache bytes continue growing even while foreground JPEG and neighbor prefetch are deliberately blocked"
+    ],
+    "errors": [],
+    "status": "passed"
+  },
+  "boundedNativePlayback": [
+    {
+      "simulatedMbps": 0,
+      "playedSecondsIn18Seconds": 18.414355,
+      "mediaError": null,
+      "responses": 30,
+      "maxResponseBytes": 2097152
+    },
+    {
+      "simulatedMbps": 8,
+      "playedSecondsIn18Seconds": 9.73837,
+      "mediaError": null,
+      "responses": 9,
+      "maxResponseBytes": 2097152
+    }
+  ],
+  "protocolClassifier": "Isolated TLS handshake on plaintext HTTP endpoint recognized as tls_on_plain_http; no headers/cookies/media payload recorded.",
+  "limitation": "Original user-side ten-second fatal failure not reproduced on server-local path; slow link buffering remains possible. Unknown original HTTP parser warning is not proof of video corruption."
+}

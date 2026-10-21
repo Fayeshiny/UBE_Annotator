@@ -1,0 +1,67 @@
+{
+  "status": "passed",
+  "checks": [
+    "Selecting an in-flight JPEG prefetch reuses one un-aborted HTTP request; loading edits stay blocked and displayed pixels match the target frame.",
+    "A selected in-flight prefetch returning 429 retries once at foreground priority and displays the correct frame.",
+    "Rapid navigation away from a promoted slow prefetch cancels it; a late old response cannot replace the final requested frame.",
+    "After visiting 21 actual 1080p JPEGs, the original decoded image is released; revisiting decodes its retained compressed JPEG without HTTP and preserves every decoded pixel.",
+    "Leaving a workspace aborts requests and releases decoded URLs; returning fetches again rather than reusing old compressed data, and logout releases the new workspace."
+  ],
+  "measurements": [
+    {
+      "label": "same-target promotion",
+      "requests": [
+        {
+          "frame": 1,
+          "prefetch": true,
+          "aborted": false,
+          "finished": true
+        }
+      ],
+      "state": {
+        "requestedFrame": "1",
+        "displayedFrame": "1",
+        "frameReady": "true",
+        "playback": "still",
+        "pausedPreview": "false",
+        "frameMs": "278",
+        "frameCached": "false"
+      }
+    },
+    {
+      "label": "selected busy prefetch gets foreground retry",
+      "requests": [
+        {
+          "frame": 1,
+          "prefetch": true,
+          "aborted": false,
+          "finished": true
+        },
+        {
+          "frame": 1,
+          "prefetch": false,
+          "aborted": false,
+          "finished": true
+        }
+      ]
+    },
+    {
+      "label": "1080p decoded eviction and compressed replay",
+      "decodedEvicted": true,
+      "requestsToRevisitedFrame": 1,
+      "pixels": {
+        "hash": 1595659190,
+        "width": 1920,
+        "height": 1080
+      }
+    }
+  ],
+  "pageErrors": [],
+  "environment": {
+    "browser": "Chrome headless",
+    "frontend": "Vite dev serving current source",
+    "backend": "isolated synthetic database",
+    "images": "synthetic 1920x1080 JPEGs",
+    "purpose": "correctness regression, not a performance benchmark"
+  }
+}

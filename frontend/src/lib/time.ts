@@ -36,3 +36,15 @@ export function frameAt(times: number[], t: number): number {
   }
   return lo;
 }
+
+/** Match a presented-frame PTS to the map's rounded millisecond timestamp.
+ * Use only with requestVideoFrameCallback.mediaTime, not the playback clock:
+ * the clock can lie anywhere inside a frame's display interval.
+ */
+export function presentedFrameAt(times: number[], mediaTimeMs: number): number {
+  const before = frameAt(times, mediaTimeMs);
+  const after = before + 1;
+  if (after < times.length && Math.abs(times[after] - mediaTimeMs) < Math.abs(times[before] - mediaTimeMs))
+    return after;
+  return before;
+}

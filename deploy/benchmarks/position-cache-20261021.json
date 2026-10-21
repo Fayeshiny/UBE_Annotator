@@ -1,0 +1,235 @@
+{
+  "status": "passed",
+  "methodology": "Isolated synthetic 30-second noisy 1920x1080 H264 video (~102 MiB), separate test database and browser sessions; no real annotation data. OPFS and IndexedDB each tested out-of-order real Range downloads. Compare every 4 MiB completed block SHA256 with source. Hold frame-chunk and video requests deliberately to establish ordering, then verify image pixels and cancellation. Network benchmark separately uses CDP 4 Mbps/80 ms, not actual user SSH performance.",
+  "frontendTests": 114,
+  "backendTests": 127,
+  "storageAndFrameChecks": {
+    "checks": [
+      "OPFS: target 650 is displayable while its neighborhood block is deliberately held",
+      "OPFS: neighborhood bytes/pixels match source, no neighbor HTTP, selected byte ranges download first, every completed block matches SHA256, clearing releases storage",
+      "IDB: target 650 is displayable while its neighborhood block is deliberately held",
+      "IDB: neighborhood bytes/pixels match source, no neighbor HTTP, selected byte ranges download first, every completed block matches SHA256, clearing releases storage"
+    ],
+    "errors": [],
+    "runs": [
+      {
+        "storage": "OPFS",
+        "selectedFrame": 650,
+        "neighborFrame": 651,
+        "pixels": 2450467706,
+        "firstRange": "bytes=75497472-79691775",
+        "downloadedRanges": [
+          "bytes=75497472-79691775",
+          "bytes=79691776-83886079",
+          "bytes=71303168-75497471",
+          "bytes=88080384-92274687",
+          "bytes=0-4194303",
+          "bytes=4194304-8388607",
+          "bytes=8388608-12582911",
+          "bytes=12582912-16777215",
+          "bytes=16777216-20971519",
+          "bytes=20971520-25165823",
+          "bytes=25165824-29360127",
+          "bytes=29360128-33554431",
+          "bytes=33554432-37748735",
+          "bytes=37748736-41943039",
+          "bytes=41943040-46137343",
+          "bytes=46137344-50331647",
+          "bytes=50331648-54525951",
+          "bytes=54525952-58720255",
+          "bytes=58720256-62914559",
+          "bytes=62914560-67108863",
+          "bytes=67108864-71303167",
+          "bytes=83886080-88080383",
+          "bytes=92274688-96468991",
+          "bytes=96468992-100663295",
+          "bytes=100663296-104857599",
+          "bytes=104857600-106570715"
+        ],
+        "sha256Blocks": 26
+      },
+      {
+        "storage": "IndexedDB",
+        "selectedFrame": 650,
+        "neighborFrame": 651,
+        "pixels": 2450467706,
+        "firstRange": "bytes=75497472-79691775",
+        "downloadedRanges": [
+          "bytes=75497472-79691775",
+          "bytes=79691776-83886079",
+          "bytes=71303168-75497471",
+          "bytes=88080384-92274687",
+          "bytes=0-4194303",
+          "bytes=4194304-8388607",
+          "bytes=8388608-12582911",
+          "bytes=12582912-16777215",
+          "bytes=16777216-20971519",
+          "bytes=20971520-25165823",
+          "bytes=25165824-29360127",
+          "bytes=29360128-33554431",
+          "bytes=33554432-37748735",
+          "bytes=37748736-41943039",
+          "bytes=41943040-46137343",
+          "bytes=46137344-50331647",
+          "bytes=50331648-54525951",
+          "bytes=54525952-58720255",
+          "bytes=58720256-62914559",
+          "bytes=62914560-67108863",
+          "bytes=67108864-71303167",
+          "bytes=83886080-88080383",
+          "bytes=92274688-96468991",
+          "bytes=96468992-100663295",
+          "bytes=100663296-104857599",
+          "bytes=104857600-106570715"
+        ],
+        "sha256Blocks": 26
+      }
+    ],
+    "status": "passed"
+  },
+  "navigationChecks": {
+    "checks": [
+      "Navigation aborts an old region download and selects a different current-region range; completion retains the selected frame",
+      "A late obsolete neighborhood response cannot replace the newer target; target remains editable only after its own image is ready"
+    ],
+    "errors": [],
+    "ranges": [
+      "bytes=75497472-79691775",
+      "bytes=33554432-37748735"
+    ],
+    "status": "passed"
+  },
+  "networkBenchmark": {
+    "label": "position-priority",
+    "rows": [
+      {
+        "frame": 277,
+        "elapsedMs": 734.3000001907349,
+        "stage": {
+          "requestedFrame": "277",
+          "displayedFrame": "277",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "685",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      },
+      {
+        "frame": 619,
+        "elapsedMs": 786.3000001907349,
+        "stage": {
+          "requestedFrame": "618",
+          "displayedFrame": "618",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "745",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      },
+      {
+        "frame": 113,
+        "elapsedMs": 723.1999998092651,
+        "stage": {
+          "requestedFrame": "113",
+          "displayedFrame": "113",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "680",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      },
+      {
+        "frame": 487,
+        "elapsedMs": 739.1999998092651,
+        "stage": {
+          "requestedFrame": "486",
+          "displayedFrame": "486",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "684",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      },
+      {
+        "frame": 731,
+        "elapsedMs": 723.1000003814697,
+        "stage": {
+          "requestedFrame": "731",
+          "displayedFrame": "731",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "681",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      },
+      {
+        "frame": 39,
+        "elapsedMs": 748.1999998092651,
+        "stage": {
+          "requestedFrame": "38",
+          "displayedFrame": "38",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "693",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 1
+      }
+    ],
+    "errors": [],
+    "network": {
+      "mbps": 4,
+      "latencyMs": 80
+    },
+    "methodology": "Real workbench, 1080p 30fps synthetic noisy H264, incomplete full video cache; cold target JPEG server cache; CDP network emulation. Interaction to frameReady plus two animation frames.",
+    "medianMs": 736.75,
+    "maxMs": 786.3000001907349
+  }
+}

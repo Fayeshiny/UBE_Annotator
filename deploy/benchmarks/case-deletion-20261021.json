@@ -1,0 +1,11 @@
+{
+  "date": "2026-10-21",
+  "fixture": "Isolated synthetic case; real annotations untouched",
+  "checks": [
+    "Wrong typed case ID is rejected and case stays visible",
+    "Confirmed deletion hides active case, revokes assignment/video URLs, retains original video bytes",
+    "Restore returns original case/assignment ID, annotation JSON/version, and byte-identical video"
+  ],
+  "errors": [],
+  "status": "passed"
+}

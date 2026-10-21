@@ -1,0 +1,132 @@
+{
+  "start_seconds": 1137,
+  "duration_requested_seconds": 10,
+  "source": {
+    "width": 1920,
+    "height": 1080,
+    "r_frame_rate": "60/1",
+    "avg_frame_rate": "2356540/39279",
+    "start_time": "0.000000",
+    "duration": "1963.950000",
+    "bit_rate": "10235032",
+    "nb_frames": "117827"
+  },
+  "original_window": {
+    "packet_count": 600,
+    "video_packet_bytes": 12779366,
+    "first_pts": 1137.0,
+    "last_pts": 1146.983333
+  },
+  "variants": [
+    {
+      "name": "1080p-crf23",
+      "preset": "veryfast",
+      "threads": 2,
+      "crf": 23,
+      "gop": 15,
+      "encode_wall_seconds": 12.95,
+      "file_bytes": 9837709,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "60/1",
+            "avg_frame_rate": "60/1",
+            "start_time": "0.000000",
+            "duration": "10.000000",
+            "bit_rate": "7863720",
+            "nb_frames": "600",
+            "nb_read_frames": "600"
+          }
+        ],
+        "format": {
+          "duration": "10.000000",
+          "size": "9837709",
+          "bit_rate": "7870167"
+        }
+      }
+    },
+    {
+      "name": "720p-crf23",
+      "preset": "veryfast",
+      "threads": 2,
+      "crf": 23,
+      "gop": 15,
+      "encode_wall_seconds": 6.182,
+      "file_bytes": 4024349,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "60/1",
+            "avg_frame_rate": "60/1",
+            "start_time": "0.000000",
+            "duration": "10.000000",
+            "bit_rate": "3213024",
+            "nb_frames": "600",
+            "nb_read_frames": "600"
+          }
+        ],
+        "format": {
+          "duration": "10.000000",
+          "size": "4024349",
+          "bit_rate": "3219479"
+        }
+      }
+    },
+    {
+      "name": "1080p-crf20",
+      "preset": "veryfast",
+      "threads": 2,
+      "crf": 20,
+      "gop": 15,
+      "encode_wall_seconds": 14.702,
+      "file_bytes": 14441776,
+      "probe": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "width": 1920,
+            "height": 1080,
+            "r_frame_rate": "60/1",
+            "avg_frame_rate": "60/1",
+            "start_time": "0.000000",
+            "duration": "10.000000",
+            "bit_rate": "11546922",
+            "nb_frames": "600",
+            "nb_read_frames": "600"
+          }
+        ],
+        "format": {
+          "duration": "10.000000",
+          "size": "14441776",
+          "bit_rate": "11553420"
+        }
+      }
+    }
+  ],
+  "notes": [
+    "Ten-second segment only; encode preset veryfast with two threads; no actual browser seek latency measurement.",
+    "Original compressed packet bytes cover PTS >= 1137 and < 1147; proxy file bytes also include MP4 container overhead.",
+    "Temporary encoded video files deleted; original media unchanged."
+  ],
+  "case_id": "S_A",
+  "active_file": "S_A_recovered.mp4",
+  "active_video_audit": {
+    "file_bytes": 2513158802,
+    "keyframes": 3367,
+    "median_keyframe_gap_frames": 35,
+    "max_keyframe_gap_frames": 35,
+    "median_keyframe_gap_seconds": 0.583333,
+    "max_keyframe_gap_seconds": 0.633333,
+    "moov_offset_bytes": 32,
+    "faststart": true
+  }
+}

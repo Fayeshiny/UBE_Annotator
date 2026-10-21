@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-21",
+  "observations": {
+    "diagnostic_records": 16,
+    "signature_counts": [
+      {
+        "first_byte": null,
+        "packet_size": null,
+        "count": 1
+      },
+      {
+        "first_byte": 9,
+        "packet_size": 13,
+        "count": 15
+      }
+    ],
+    "matching_signature_times_utc": [
+      "2026-10-21T06:19:46.247184+00:00",
+      "2026-10-21T06:20:02.331075+00:00",
+      "2026-10-21T06:20:31.679883+00:00",
+      "2026-10-21T06:20:53.818305+00:00",
+      "2026-10-21T06:20:58.164297+00:00",
+      "2026-10-21T06:21:03.325983+00:00",
+      "2026-10-21T06:21:27.120320+00:00",
+      "2026-10-21T06:21:30.518068+00:00",
+      "2026-10-21T06:21:34.514408+00:00",
+      "2026-10-21T06:21:55.261956+00:00",
+      "2026-10-21T06:21:55.263142+00:00",
+      "2026-10-21T06:22:27.064139+00:00",
+      "2026-10-21T06:22:27.064887+00:00",
+      "2026-10-21T06:23:12.791356+00:00",
+      "2026-10-21T06:23:12.792185+00:00"
+    ],
+    "forwarder_process": {
+      "pid": 4013828,
+      "kind": "VS Code Server",
+      "commit": "6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1",
+      "observed_loopback_connections": 3
+    }
+  },
+  "source_comparison": {
+    "message_type": 9,
+    "header_bytes": 13,
+    "heartbeat_interval_ms": 5000,
+    "layout": "type:u8 id:u32be ack:u32be payload_length:u32be",
+    "keepalive_id": 0,
+    "keepalive_payload_length": 0,
+    "source": "https://github.com/microsoft/vscode/blob/6d62b1d5dace93a33b3a6d3eca1317bd5e15bcb1/src/vs/base/parts/ipc/common/ipc.net.ts"
+  },
+  "controlled_reproduction": {
+    "test": "backend/tests/test_http_diagnostics.py::test_keepalive_during_http_video_response_closes_the_stream",
+    "result": "passed",
+    "http_parser": "httptools",
+    "initial_status": 206,
+    "injected_frame": "type9 id0 ack0 payload_length0",
+    "response_after_injection": 400,
+    "stream_closed_before_declared_length": true,
+    "diagnostic_category": "vscode_keepalive_on_http",
+    "active_video_response": true
+  },
+  "conclusion": "Strong evidence of VS Code forwarding control-frame leakage. Existing real-client records contain only first byte and packet size, not full frame or active-response context, so real-path causal confirmation remains pending.",
+  "next_step": "Use a separate OpenSSH local forward on computer port 18001 to server 127.0.0.1:8001 and compare playback for at least 30 seconds. Enhanced diagnostics can identify exact keepalive shape and active video responses on recurrence.",
+  "changes": [
+    "recognize complete empty VS Code KeepAlive control frames",
+    "record loopback/peer port and boolean active video response context, without headers, cookies, full URL or media payload"
+  ],
+  "validation": {
+    "diagnostic_tests_passed": 5,
+    "service_health_8001": "200"
+  },
+  "not_done": [
+    "No modifications to VS Code installation or its settings",
+    "No actual-client SSH comparison yet",
+    "No video or annotation data modifications"
+  ]
+}

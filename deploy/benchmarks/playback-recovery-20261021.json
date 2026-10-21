@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-21",
+  "source": "Read-only isolated links to existing first subvideo; real annotations untouched",
+  "clip": {
+    "bytes": 579127416,
+    "durationSeconds": 310,
+    "averageMbps": 14.95
+  },
+  "runs": [
+    {
+      "simulatedMbps": 0,
+      "videoTimeAfter18Seconds": 18.344671,
+      "mediaError": null,
+      "waitingEvents": 0
+    },
+    {
+      "simulatedMbps": 8,
+      "videoTimeAfter18Seconds": 10.239314,
+      "mediaError": null,
+      "waitingEvents": 38
+    }
+  ],
+  "recovery": {
+    "checks": [
+      "Native browser media failure at5seconds retains last presented global frame; one-click retry reloads source and resumes beyond previous position without page refresh",
+      "Injected network-error event reports transfer interruption separately from decode/format failures and offers resume-at-current-frame"
+    ],
+    "errors": [],
+    "status": "passed"
+  },
+  "buffering": {
+    "status": "passed",
+    "state": {
+      "error": null,
+      "time": 0.468119,
+      "paused": false
+    }
+  },
+  "limitation": "Original user-side fatal loading error was not reproduced; bandwidth-related buffering was reproduced. Error recovery verified with native unsupported-source error and injected network-error event."
+}

@@ -1,0 +1,60 @@
+{
+  "method": "Actual application keyboard / ruler clicks. 20Mbps/80ms CDP network; server cache initially partly warm from media tests; automatic POST sparse warmup intercepted to avoid full case warm in isolated benchmark. Adjacent UI prefetch allowed, pause1200ms before each action. Measures keydown or mousedown to matching data-frame-ready plus2paintcycles.",
+  "rows": [
+    {
+      "kind": "key",
+      "target": "l",
+      "elapsedMs": 31.600000381469727,
+      "requestedFrame": "295",
+      "displayedFrame": "295",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "l",
+      "elapsedMs": 27.800000190734863,
+      "requestedFrame": "595",
+      "displayedFrame": "595",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "l",
+      "elapsedMs": 28.899999618530273,
+      "requestedFrame": "895",
+      "displayedFrame": "895",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "l",
+      "elapsedMs": 28.300000190734863,
+      "requestedFrame": "1195",
+      "displayedFrame": "1195",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    },
+    {
+      "kind": "key",
+      "target": "l",
+      "elapsedMs": 29.199999809265137,
+      "requestedFrame": "1495",
+      "displayedFrame": "1495",
+      "frameReady": "true",
+      "playback": "still",
+      "frameMs": "0",
+      "frameCached": "true"
+    }
+  ]
+}

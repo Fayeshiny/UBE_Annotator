@@ -1,0 +1,18 @@
+[Unit]
+Description=SSI annotation production service
+After=network.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+WorkingDirectory=@PROJECT_ROOT@
+ExecStart="@PROJECT_ROOT@/scripts/serve-production.sh"
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=90
+UMask=0077
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

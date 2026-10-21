@@ -1,0 +1,194 @@
+{
+  "timestamp": "2026-10-20T02:22:10.689Z",
+  "browser": "151.0.7922.169",
+  "mode": "image",
+  "environment": {
+    "mbps": 20,
+    "latencyMs": 80,
+    "httpCacheDisabled": true,
+    "cpuThrottle": false
+  },
+  "methodology": "Media-level benchmark, not full app interaction. Video currentTime to seeked + two animation frames; image fetch + decode + two animation frames. CDP encoded bytes are approximate window deltas (video can download ahead). OS file cache is not flushed. Decoded reuse is a harness cache, not an app LRU integration test.",
+  "rows": [
+    {
+      "phase": "first_access",
+      "frame": 6001,
+      "elapsedMs": 349,
+      "fetchMs": 314.9000005722046,
+      "decodeMs": 16.40000057220459,
+      "serverCache": "MISS",
+      "responseBytes": 125219,
+      "transferredBytes": 125219
+    },
+    {
+      "phase": "first_access",
+      "frame": 6002,
+      "elapsedMs": 161.69999980926514,
+      "fetchMs": 139.89999961853027,
+      "decodeMs": 17.100000381469727,
+      "serverCache": "HIT",
+      "responseBytes": 125210,
+      "transferredBytes": 125210
+    },
+    {
+      "phase": "first_access",
+      "frame": 6003,
+      "elapsedMs": 162.89999961853027,
+      "fetchMs": 137.80000019073486,
+      "decodeMs": 16.100000381469727,
+      "serverCache": "HIT",
+      "responseBytes": 125642,
+      "transferredBytes": 125642
+    },
+    {
+      "phase": "first_access",
+      "frame": 6004,
+      "elapsedMs": 162.60000038146973,
+      "fetchMs": 138.89999961853027,
+      "decodeMs": 15.300000190734863,
+      "serverCache": "HIT",
+      "responseBytes": 122874,
+      "transferredBytes": 122874
+    },
+    {
+      "phase": "first_access",
+      "frame": 6005,
+      "elapsedMs": 363.0999994277954,
+      "fetchMs": 342.0999994277954,
+      "decodeMs": 15.700000762939453,
+      "serverCache": "MISS",
+      "responseBytes": 121552,
+      "transferredBytes": 121552
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 6001,
+      "elapsedMs": 164.39999961853027,
+      "fetchMs": 139.69999980926514,
+      "decodeMs": 16,
+      "serverCache": "HIT",
+      "responseBytes": 125219,
+      "transferredBytes": 125219
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 6002,
+      "elapsedMs": 162.80000019073486,
+      "fetchMs": 138.69999980926514,
+      "decodeMs": 15.09999942779541,
+      "serverCache": "HIT",
+      "responseBytes": 125210,
+      "transferredBytes": 125210
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 6003,
+      "elapsedMs": 164.0999994277954,
+      "fetchMs": 137.69999980926514,
+      "decodeMs": 16.300000190734863,
+      "serverCache": "HIT",
+      "responseBytes": 125642,
+      "transferredBytes": 125642
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 6004,
+      "elapsedMs": 161.9000005722046,
+      "fetchMs": 138.69999980926514,
+      "decodeMs": 15.199999809265137,
+      "serverCache": "HIT",
+      "responseBytes": 122874,
+      "transferredBytes": 122874
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 6005,
+      "elapsedMs": 160,
+      "fetchMs": 136,
+      "decodeMs": 15.899999618530273,
+      "serverCache": "HIT",
+      "responseBytes": 121552,
+      "transferredBytes": 121552
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 6001,
+      "elapsedMs": 30.899999618530273,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 6002,
+      "elapsedMs": 30.09999942779541,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 6003,
+      "elapsedMs": 29.5,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 6004,
+      "elapsedMs": 28.90000057220459,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 6005,
+      "elapsedMs": 29.699999809265137,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    }
+  ],
+  "summary": {
+    "first_access": {
+      "n": 5,
+      "medianMs": 162.89999961853027,
+      "p95Ms": 363.0999994277954,
+      "transferredBytes": 620497,
+      "cacheResponses": {
+        "MISS": 2,
+        "HIT": 3
+      }
+    },
+    "server_disk_reuse": {
+      "n": 5,
+      "medianMs": 162.80000019073486,
+      "p95Ms": 164.39999961853027,
+      "transferredBytes": 620497,
+      "cacheResponses": {
+        "HIT": 5
+      }
+    },
+    "decoded_reuse": {
+      "n": 5,
+      "medianMs": 29.699999809265137,
+      "p95Ms": 30.899999618530273,
+      "transferredBytes": 0,
+      "cacheResponses": {
+        "decoded": 5
+      }
+    }
+  }
+}

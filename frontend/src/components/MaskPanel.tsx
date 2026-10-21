@@ -10,6 +10,7 @@ interface Props {
   ws: WS;
   canVerify: boolean;
   frame: number;
+  frameReady?: boolean;
   objects: MaskObject[];
   reload: () => Promise<void>;
   activeObject: number | null;
@@ -40,8 +41,8 @@ export default function MaskPanel(p: Props) {
   const ctxIdx = partIndexAt(ws.ann.context, ws.currentMs);
   const [range, setRange] = useState<[number, number] | null>(null);
   const [stride, setStride] = useState(1);
-  const segStart = range?.[0] ?? ws.ann.context[ctxIdx]?.start_ms ?? 0;
-  const segEnd = range?.[1] ?? segmentEnd(ws.ann.context, ctxIdx, ws.duration);
+  const segStart = Math.max(ws.segmentStart ?? 0, range?.[0] ?? ws.ann.context[ctxIdx]?.start_ms ?? 0);
+  const segEnd = Math.min((ws.segmentEnd == null ? ws.duration : ws.segmentEnd - 1), range?.[1] ?? segmentEnd(ws.ann.context, ctxIdx, ws.duration));
   const active = p.objects.find((o) => o.id === p.activeObject) ?? null;
   const s = p.session;
   const [candidateJob, setCandidateJob] = useState<CandidateJob | null>(null);
@@ -53,7 +54,9 @@ export default function MaskPanel(p: Props) {
   const candidateBusy = requestingCandidates || candidateJob?.status === "queued" || candidateJob?.status === "running";
   const establishing = p.creatingSession || s?.status === "loading";
   const sessionBusy = establishing || s?.status === "propagating" || candidateBusy;
-  const inSession = (o: MaskObject) => !!s && o.start_ms >= s.start_ms - 1 && o.end_ms <= s.end_ms + 1;
+  const sessionInTask = !!s && (ws.segmentStart == null || s.start_ms >= ws.segmentStart && s.end_ms < (ws.segmentEnd ?? ws.duration));
+  const inSession = (o: MaskObject) => sessionInTask && !!s && ((o.start_ms >= s.start_ms - 1 && o.end_ms <= s.end_ms + 1)
+    || (o.start_ms <= s.start_ms + 1 && o.end_ms >= s.end_ms - 1));
 
   useEffect(() => {
     let disposed = false;
@@ -92,7 +95,7 @@ export default function MaskPanel(p: Props) {
   }, [s?.id, candidateJob, candidateSelection, p.onCandidatePreview]);
 
   async function generateCandidates() {
-    if (!s || candidateRequestRef.current || sessionBusy || s.status !== "ready") return;
+    if (!s || !sessionInTask || !ws.editable || p.frameReady === false || candidateRequestRef.current || sessionBusy || s.status !== "ready") return;
     candidateRequestRef.current = true;
     setRequestingCandidates(true);
     p.pauseVideo();
@@ -125,8 +128,8 @@ export default function MaskPanel(p: Props) {
     await run(async () => {
       const o = await api.post<MaskObject>(`/api/assignments/${ws.assignmentId}/mask-objects`, {
         cls,
-        start_ms: s ? s.start_ms : segStart,
-        end_ms: s ? s.end_ms : segEnd,
+        start_ms: s && sessionInTask ? s.start_ms : segStart,
+        end_ms: s && sessionInTask ? s.end_ms : segEnd,
       });
       await p.reload();
       p.setActiveObject(o.id);
@@ -135,7 +138,7 @@ export default function MaskPanel(p: Props) {
   }
 
   async function propagate(direction: string) {
-    if (!s) return;
+    if (!s || !sessionInTask || !ws.editable || p.frameReady === false) return;
     await run(async () => p.setSession(await api.post<SamSession>(`/api/sam/sessions/${s.id}/propagate`, { frame_idx: p.frame, direction })));
   }
 
@@ -151,14 +154,15 @@ export default function MaskPanel(p: Props) {
       </p>
 
       <h4>① SAM 分割片段（后端：{ws.protocol.sam_backend}）</h4>
+      {s && !sessionInTask && <p className="notice small">已有 SAM 片段超出当前子任务，请在本段重新建立片段；原有结构和掩膜保留。</p>}
       <div className="row tight">
         <span className="small">
           {fmtTime(segStart)} – {fmtTime(segEnd)}（{labelAt(ws.ann.context, segStart) ?? "情境未标"}）
         </span>
-        <button className="btn tiny" disabled={sessionBusy} onClick={() => setRange([Math.round(ws.currentMs), segEnd])}>
+        <button className="btn tiny" disabled={sessionBusy || p.frameReady === false} onClick={() => setRange([Math.round(ws.currentMs), segEnd])}>
           起点=当前
         </button>
-        <button className="btn tiny" disabled={sessionBusy} onClick={() => setRange([segStart, Math.round(ws.currentMs)])}>
+        <button className="btn tiny" disabled={sessionBusy || p.frameReady === false} onClick={() => setRange([segStart, Math.round(ws.currentMs)])}>
           终点=当前
         </button>
         <button className="btn tiny" disabled={sessionBusy} onClick={() => setRange(null)}>
@@ -221,8 +225,8 @@ export default function MaskPanel(p: Props) {
 
       <h4>② 当前帧自动候选</h4>
       <div className="row tight">
-        <button className="btn small primary" disabled={!ws.editable || !s || s.status !== "ready" || sessionBusy
-          || ws.currentMs < s.start_ms || ws.currentMs > s.end_ms} aria-busy={candidateBusy} onClick={generateCandidates}>
+        <button className="btn small primary" disabled={!ws.editable || p.frameReady === false || !s || s.status !== "ready" || sessionBusy
+          || !sessionInTask || ws.currentMs < s.start_ms || ws.currentMs > s.end_ms} aria-busy={candidateBusy} onClick={generateCandidates}>
           {candidateBusy ? "正在生成候选…" : "自动生成当前帧候选"}
         </button>
         {candidateBusy && s && <button className="btn small" onClick={() => run(() => api.post(`/api/sam/sessions/${s.id}/candidates/cancel`))}>取消生成</button>}
@@ -283,7 +287,7 @@ export default function MaskPanel(p: Props) {
                       {o.verified ? "撤销确认" : "专家确认"}
                     </button>
                 )}
-                {ws.editable && (
+                {ws.editable && o.start_ms >= (ws.segmentStart ?? 0) && o.end_ms < (ws.segmentEnd ?? ws.duration) && (
                     <button
                       className="btn tiny danger"
                       onClick={(e) => {
@@ -305,7 +309,13 @@ export default function MaskPanel(p: Props) {
         </tbody>
       </table>
 
+      {ws.segmentStart != null && active && active.start_ms < ws.segmentStart && active.end_ms < (ws.segmentEnd ?? ws.duration)-1 && <button className="btn small" disabled={!ws.editable || sessionBusy}
+        onClick={() => run(async () => {
+          await api.patch(`/api/mask-objects/${active.id}`, { end_ms: (ws.segmentEnd ?? ws.duration)-1 });
+          await p.reload();
+        })}>延续 {active.object_id} 到本段末（保留原 ID）</button>}
       <h4>④ 当前帧工具（帧 {p.frame}）</h4>
+      {p.frameReady === false && <p className="notice small">暂停并等待当前帧画面加载后，才能生成候选或编辑掩膜。</p>}
       {!active && <p className="muted small">先在上面选择或新建一个结构目标。</p>}
       {active && (
         <>
@@ -321,7 +331,7 @@ export default function MaskPanel(p: Props) {
             ).map(([t, l]) => (
               <button
                 key={t}
-                disabled={!ws.editable || sessionBusy || ((t === "point" || t === "box") && (!s || s.status !== "ready" || !inSession(active)))}
+                disabled={!ws.editable || p.frameReady === false || sessionBusy || ((t === "point" || t === "box") && (!s || s.status !== "ready" || !inSession(active)))}
                 className={p.tool === t ? "btn small primary" : "btn small"}
                 onClick={() => p.setTool(t)}
               >
@@ -336,13 +346,13 @@ export default function MaskPanel(p: Props) {
             点提示：左键=前景，右键或 Shift+左键=背景，连续点击逐步修正。多边形：逐点单击，点回起点、双击或 Enter 闭合，Backspace 撤销一点，Esc 取消。
           </p>
           <div className="row tight">
-            <button className="btn small" disabled={!ws.editable || !s || s.status !== "ready" || sessionBusy} onClick={() => propagate("forward")}>
+            <button className="btn small" disabled={!ws.editable || p.frameReady === false || !s || !sessionInTask || s.status !== "ready" || sessionBusy} onClick={() => propagate("forward")}>
               向后传播 →
             </button>
-            <button className="btn small" disabled={!ws.editable || !s || s.status !== "ready" || sessionBusy} onClick={() => propagate("backward")}>
+            <button className="btn small" disabled={!ws.editable || p.frameReady === false || !s || !sessionInTask || s.status !== "ready" || sessionBusy} onClick={() => propagate("backward")}>
               ← 向前传播
             </button>
-            <button className="btn small" disabled={!ws.editable || !s || s.status !== "ready" || sessionBusy} onClick={() => propagate("both")}>
+            <button className="btn small" disabled={!ws.editable || p.frameReady === false || !s || !sessionInTask || s.status !== "ready" || sessionBusy} onClick={() => propagate("both")}>
               双向传播
             </button>
           </div>
@@ -356,6 +366,7 @@ export default function MaskPanel(p: Props) {
             {ws.editable && maskFrames.includes(p.frame) && (
               <button
                 className="btn tiny danger"
+                disabled={p.frameReady === false}
                 onClick={() =>
                   run(async () => {
                     await api.del(`/api/mask-objects/${active.id}/frames/${p.frame}`);

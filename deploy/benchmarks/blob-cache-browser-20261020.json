@@ -1,0 +1,49 @@
+{
+  "status": "passed",
+  "checks": [
+    "Compressed JPEG cache enforces LRU entry limits and accounts original JPEG bytes precisely; a cache hit decodes without HTTP.",
+    "Releasing decoded images leaves no live object URLs, and clearing the cache zeroes bytes and retained entries.",
+    "Oversized JPEG remains displayable but does not enter the compressed cache.",
+    "Clearing during a pending fetch aborts it promptly and blocks late data from repopulating the cache."
+  ],
+  "pageErrors": [],
+  "measurements": {
+    "lru": {
+      "keys": [
+        0,
+        2
+      ],
+      "bytes": 89012,
+      "measured": 89012,
+      "requests": 3,
+      "liveURLs": 0
+    },
+    "cleared": {
+      "bytes": 0,
+      "entries": 0,
+      "active": 0
+    },
+    "oversized": {
+      "bytes": 0,
+      "entries": 0,
+      "liveURLs": 0
+    },
+    "cancelled": {
+      "name": "AbortError"
+    },
+    "late": {
+      "bytes": 0,
+      "entries": 0,
+      "active": 0,
+      "aborted": true
+    },
+    "before": 89012
+  },
+  "environment": {
+    "browser": "Chrome headless",
+    "frontend": "Vite dev serving current source",
+    "backend": "isolated synthetic database",
+    "images": "synthetic 1920x1080 JPEGs",
+    "purpose": "correctness regression, not a performance benchmark"
+  }
+}

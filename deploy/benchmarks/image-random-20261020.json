@@ -1,0 +1,163 @@
+{
+  "timestamp": "2026-10-20T02:21:40.885Z",
+  "browser": "151.0.7922.169",
+  "mode": "image",
+  "environment": {
+    "mbps": 20,
+    "latencyMs": 80,
+    "httpCacheDisabled": true,
+    "cpuThrottle": false
+  },
+  "methodology": "Media-level benchmark, not full app interaction. Video currentTime to seeked + two animation frames; image fetch + decode + two animation frames. CDP encoded bytes are approximate window deltas (video can download ahead). OS file cache is not flushed. Decoded reuse is a harness cache, not an app LRU integration test.",
+  "rows": [
+    {
+      "phase": "first_access",
+      "frame": 54000,
+      "elapsedMs": 565.8999996185303,
+      "fetchMs": 537.3000001907349,
+      "decodeMs": 17.40000057220459,
+      "serverCache": "MISS",
+      "responseBytes": 126334,
+      "transferredBytes": 126334
+    },
+    {
+      "phase": "first_access",
+      "frame": 108000,
+      "elapsedMs": 379,
+      "fetchMs": 346.80000019073486,
+      "decodeMs": 17.09999942779541,
+      "serverCache": "MISS",
+      "responseBytes": 98426,
+      "transferredBytes": 98426
+    },
+    {
+      "phase": "first_access",
+      "frame": 24000,
+      "elapsedMs": 377.1000003814697,
+      "fetchMs": 335,
+      "decodeMs": 18.800000190734863,
+      "serverCache": "MISS",
+      "responseBytes": 138696,
+      "transferredBytes": 138696
+    },
+    {
+      "phase": "first_access",
+      "frame": 84000,
+      "elapsedMs": 362.19999980926514,
+      "fetchMs": 331.6000003814697,
+      "decodeMs": 15.399999618530273,
+      "serverCache": "MISS",
+      "responseBytes": 109936,
+      "transferredBytes": 109936
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 54000,
+      "elapsedMs": 179,
+      "fetchMs": 141.30000019073486,
+      "decodeMs": 16.699999809265137,
+      "serverCache": "HIT",
+      "responseBytes": 126334,
+      "transferredBytes": 126334
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 108000,
+      "elapsedMs": 162.19999980926514,
+      "fetchMs": 128.79999923706055,
+      "decodeMs": 16,
+      "serverCache": "HIT",
+      "responseBytes": 98426,
+      "transferredBytes": 98426
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 24000,
+      "elapsedMs": 178.19999980926514,
+      "fetchMs": 144.69999980926514,
+      "decodeMs": 16.600000381469727,
+      "serverCache": "HIT",
+      "responseBytes": 138696,
+      "transferredBytes": 138696
+    },
+    {
+      "phase": "server_disk_reuse",
+      "frame": 84000,
+      "elapsedMs": 161.9000005722046,
+      "fetchMs": 132.9000005722046,
+      "decodeMs": 16.300000190734863,
+      "serverCache": "HIT",
+      "responseBytes": 109936,
+      "transferredBytes": 109936
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 54000,
+      "elapsedMs": 28.40000057220459,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 108000,
+      "elapsedMs": 28.399999618530273,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 24000,
+      "elapsedMs": 28.600000381469727,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    },
+    {
+      "phase": "decoded_reuse",
+      "frame": 84000,
+      "elapsedMs": 29,
+      "fetchMs": 0,
+      "decodeMs": 0,
+      "serverCache": "decoded",
+      "responseBytes": 0,
+      "transferredBytes": 0
+    }
+  ],
+  "summary": {
+    "first_access": {
+      "n": 4,
+      "medianMs": 378.05000019073486,
+      "p95Ms": 565.8999996185303,
+      "transferredBytes": 473392,
+      "cacheResponses": {
+        "MISS": 4
+      }
+    },
+    "server_disk_reuse": {
+      "n": 4,
+      "medianMs": 170.19999980926514,
+      "p95Ms": 179,
+      "transferredBytes": 473392,
+      "cacheResponses": {
+        "HIT": 4
+      }
+    },
+    "decoded_reuse": {
+      "n": 4,
+      "medianMs": 28.500000476837158,
+      "p95Ms": 29,
+      "transferredBytes": 0,
+      "cacheResponses": {
+        "decoded": 4
+      }
+    }
+  }
+}

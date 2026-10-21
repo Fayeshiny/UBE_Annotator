@@ -1,0 +1,279 @@
+{
+  "checks": [
+    "Pause retains visible frozen video through a 1500 ms JPEG delay; compact badge, stable pixels/time, editing blocked, matching still enables editing.",
+    "JPEG failure preserves paused pixels and blocked edits, and Retry recovers matching still.",
+    "Explicit jump during paused-preview loading clears old video; stale pause request cannot overwrite new target.",
+    "Resume during JPEG delay cancels old still handoff; playback advances and subsequent pause resolves to latest frame.",
+    "Range end automatically pauses without blanking the video while exact still loads.",
+    "Natural video end retains final video image until frame 899 JPEG is ready, without rewind."
+  ],
+  "pageErrors": [],
+  "measurements": [
+    {
+      "scenario": "manual pause slow JPEG",
+      "state": {
+        "requestedFrame": "177",
+        "displayedFrame": "177",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 5.905938,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          44,
+          44,
+          44,
+          255
+        ]
+      },
+      "screenPixel": [
+        44,
+        44,
+        44
+      ],
+      "exactVideoFrameMatches": [
+        [
+          0.3793153153153153,
+          177
+        ],
+        [
+          7.325261261261261,
+          172
+        ],
+        [
+          12.645045045045045,
+          173
+        ]
+      ]
+    },
+    {
+      "scenario": "manual pause failed JPEG",
+      "state": {
+        "requestedFrame": "177",
+        "displayedFrame": "177",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 5.905795,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          44,
+          44,
+          44,
+          255
+        ]
+      },
+      "screenPixel": [
+        44,
+        44,
+        44
+      ],
+      "exactVideoFrameMatches": [
+        [
+          0.3793153153153153,
+          177
+        ],
+        [
+          7.325261261261261,
+          172
+        ],
+        [
+          12.645045045045045,
+          173
+        ]
+      ]
+    },
+    {
+      "scenario": "pause before explicit jump",
+      "state": {
+        "requestedFrame": "177",
+        "displayedFrame": "177",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 5.904382,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          44,
+          44,
+          44,
+          255
+        ]
+      },
+      "screenPixel": [
+        44,
+        44,
+        44
+      ],
+      "exactVideoFrameMatches": [
+        [
+          0.3793153153153153,
+          177
+        ],
+        [
+          7.325261261261261,
+          172
+        ],
+        [
+          12.645045045045045,
+          173
+        ]
+      ]
+    },
+    {
+      "scenario": "pause before resume",
+      "state": {
+        "requestedFrame": "176",
+        "displayedFrame": "176",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 5.887782,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          44,
+          44,
+          44,
+          255
+        ]
+      },
+      "screenPixel": [
+        44,
+        44,
+        44
+      ],
+      "exactVideoFrameMatches": [
+        [
+          0.38544144144144143,
+          176
+        ],
+        [
+          2.384072072072072,
+          178
+        ],
+        [
+          3.944792792792793,
+          179
+        ]
+      ]
+    },
+    {
+      "scenario": "range auto-pause",
+      "state": {
+        "requestedFrame": "78",
+        "displayedFrame": "78",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 2.539848,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          19,
+          19,
+          19,
+          255
+        ]
+      },
+      "screenPixel": [
+        19,
+        19,
+        19
+      ],
+      "exactVideoFrameMatches": [
+        [
+          1.2376216216216216,
+          78
+        ],
+        [
+          4.115387387387387,
+          76
+        ],
+        [
+          6.731963963963964,
+          79
+        ]
+      ]
+    },
+    {
+      "scenario": "natural video end",
+      "state": {
+        "requestedFrame": "899",
+        "displayedFrame": "899",
+        "frameReady": "false",
+        "playback": "still",
+        "pausedPreview": "true",
+        "frameMs": "0",
+        "frameCached": "false"
+      },
+      "video": {
+        "time": 30,
+        "paused": true,
+        "ended": true,
+        "seeking": false,
+        "visibility": "visible",
+        "pixel": [
+          223,
+          223,
+          223,
+          255
+        ]
+      },
+      "screenPixel": [
+        223,
+        223,
+        223
+      ],
+      "exactVideoFrameMatches": [
+        [
+          0.4376216216216216,
+          899
+        ],
+        [
+          18.562738738738737,
+          896
+        ],
+        [
+          20.905513513513515,
+          898
+        ]
+      ]
+    }
+  ],
+  "status": "passed",
+  "build": "/assets/index-D35lzPgH.js"
+}

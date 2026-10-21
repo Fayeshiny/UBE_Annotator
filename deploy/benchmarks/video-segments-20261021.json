@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-21",
+  "fixture": "Isolated synthetic320x240,30fps,16seconds;5second cores;1second contexts",
+  "status": "passed",
+  "checks": [
+    "OPFS: 5–10s core at global frame150 decodes at clip-local1s, 7s clip cached instead of16s original",
+    "cross-boundary event E1 retains original global onset4900ms, offset saved at5033ms",
+    "10-frame/second context inspection is read-only; shortcuts do not modify parent data",
+    "switching saves data, replaces clip cache, updates completion; final1s core has 2s clip; pending recovery closes globally at15000ms; play/pause retains correct global frame",
+    "IDB: 5–10s core at global frame150 decodes at clip-local1s, 7s clip cached instead of16s original",
+    "cross-boundary event E1 retains original global onset4900ms, offset saved at5033ms",
+    "10-frame/second context inspection is read-only; shortcuts do not modify parent data",
+    "switching saves data, replaces clip cache, updates completion; final1s core has 2s clip; pending recovery closes globally at15000ms; play/pause retains correct global frame"
+  ],
+  "pageErrors": [],
+  "fullSourceVideoRequests": 0,
+  "segmentVideoRequests": 12,
+  "limitations": "Functional correctness with isolated synthetic data; no latency bound asserted for SSH forwarding."
+}

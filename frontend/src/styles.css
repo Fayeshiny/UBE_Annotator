@@ -761,3 +761,42 @@ details summary {
 .consensus-panel p { margin: 4px 0; }
 .consensus-panel input { min-width: 260px; }
 .consensus-history { overflow-x: auto; }
+
+/* Still frames use the same contain geometry as the video and mask canvas. */
+.stage .frame-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.stage .frame-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  color: #e2e8f0;
+  background: #0f172a;
+  z-index: 2;
+}
+
+/* A pause retains the decoded video; background still loading must not cover it. */
+.stage .frame-status-preview {
+  inset: 12px auto auto 12px;
+  max-width: calc(100% - 24px);
+  padding: 6px 10px;
+  border-radius: 4px;
+  flex-direction: row;
+  font-size: 13px;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.video-cache-notice { background: #fff; color: #334155; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 10px; border-top: 1px solid #e2e8f0; }
+.video-cache-notice > span { flex: 1; min-width: 180px; }
+
+.subtask-bar { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 16px; background:#f1f5f9; border-bottom:1px solid #cbd5e1; }
+.subtask-bar select { min-width:260px; padding:5px 8px; }

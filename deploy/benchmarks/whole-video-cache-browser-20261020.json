@@ -1,0 +1,119 @@
+{
+  "status": "passed",
+  "methodology": "Isolated synthetic 30-second 320x180 video and independent test database; 12 MiB valid MP4 free atom for multi-range OPFS/IndexedDB checks. Large-file case pads the same synthetic MP4 to 2^31+17 bytes with a valid free atom; this verifies byte offsets and browser disk storage, not 30-minute decoding or remote SSH throughput. Media requests blocked after completion; annotation APIs remain online.",
+  "frontendTests": 101,
+  "backendTests": 125,
+  "checks": [
+    "OPFS: full download, local frame pixel equality, offline jumps/play/pause, clear storage, retry and assignment isolation",
+    "IndexedDB: full download, local frame pixel equality, offline jumps/play/pause, clear storage, retry and assignment isolation",
+    "Pausing an in-flight range and resuming produces a complete playable local file",
+    "Quota failure retains online frame viewing and playback",
+    "Playback automatically pauses download; pausing playback resumes it; logout releases the complete file"
+  ],
+  "pageErrors": [],
+  "pixelChecks": [
+    {
+      "target": 150,
+      "actual": 5.0165,
+      "main": 1052758650,
+      "reference": 1052758650,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 151,
+      "actual": 5.05,
+      "main": 1484179474,
+      "reference": 1484179474,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 1,
+      "actual": 0.05,
+      "main": 4106441030,
+      "reference": 4106441030,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 2,
+      "actual": 0.0835,
+      "main": 2281653162,
+      "reference": 2281653162,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 11,
+      "actual": 0.3835,
+      "main": 868576624,
+      "reference": 868576624,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 150,
+      "actual": 5.0165,
+      "main": 1052758650,
+      "reference": 1052758650,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 151,
+      "actual": 5.05,
+      "main": 1484179474,
+      "reference": 1484179474,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 1,
+      "actual": 0.05,
+      "main": 4106441030,
+      "reference": 4106441030,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 2,
+      "actual": 0.0835,
+      "main": 2281653162,
+      "reference": 2281653162,
+      "width": 320,
+      "height": 180
+    },
+    {
+      "target": 11,
+      "actual": 0.3835,
+      "main": 868576624,
+      "reference": 868576624,
+      "width": 320,
+      "height": 180
+    }
+  ],
+  "largeFile": {
+    "status": "passed",
+    "errors": [],
+    "ranges": 513,
+    "elapsedMs": 13953,
+    "cache": {
+      "cacheStatus": "complete",
+      "cacheLoaded": "2147483665",
+      "cacheTotal": "2147483665"
+    },
+    "lastFrame": {
+      "time": 29.984,
+      "duration": 30,
+      "width": 320,
+      "height": 180
+    }
+  },
+  "quotaFallback": {
+    "context": "Chrome temporary/incognito browser context",
+    "loadedBytes": 2097152000,
+    "totalBytes": 2147483665,
+    "result": "QuotaExceededError surfaced as storage-space notice; incomplete URL never published; online fallback retained."
+  }
+}

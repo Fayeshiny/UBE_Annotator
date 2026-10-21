@@ -1,0 +1,401 @@
+{
+  "status": "passed",
+  "methodology": "Before/after on independent case identities (cold target server JPEG caches), same synthetic noisy 1920x1080 30fps H264 and unchanged JPEG quality; complete video cache unfinished. Both disable sparse server warmup to measure cold random targets. Baseline reconstructs preceding frontend scheduling using the same dependencies; optimized uses production Vite build. CDP 4 Mbps, 80 ms latency, HTTP cache disabled, no CPU throttle. Six timeline clicks; interaction to selected frame-ready plus two animation frames, not a guarantee for the users SSH network. Timeline raster pixel rounding means some clicked frame numbers snap to the preceding frame, recorded explicitly.",
+  "baseline": {
+    "label": "baseline",
+    "rows": [
+      {
+        "frame": 277,
+        "elapsedMs": 1563.3999996185303,
+        "stage": {
+          "requestedFrame": "277",
+          "displayedFrame": "277",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1514",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 619,
+        "elapsedMs": 1653,
+        "stage": {
+          "requestedFrame": "618",
+          "displayedFrame": "618",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1612",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 113,
+        "elapsedMs": 1571.8999996185303,
+        "stage": {
+          "requestedFrame": "113",
+          "displayedFrame": "113",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1530",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 487,
+        "elapsedMs": 1573.3000001907349,
+        "stage": {
+          "requestedFrame": "486",
+          "displayedFrame": "486",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1533",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 731,
+        "elapsedMs": 1541,
+        "stage": {
+          "requestedFrame": "731",
+          "displayedFrame": "731",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1496",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 39,
+        "elapsedMs": 1524.0999994277954,
+        "stage": {
+          "requestedFrame": "38",
+          "displayedFrame": "38",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "1484",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "downloading",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      }
+    ],
+    "errors": [],
+    "network": {
+      "mbps": 4,
+      "latencyMs": 80
+    },
+    "methodology": "Real workbench, 1080p 30fps synthetic noisy H264, incomplete full video cache; cold target JPEG server cache; CDP network emulation. Interaction to frameReady plus two animation frames.",
+    "medianMs": 1567.6499996185303,
+    "maxMs": 1653
+  },
+  "optimized": {
+    "label": "optimized",
+    "rows": [
+      {
+        "frame": 277,
+        "elapsedMs": 727.5,
+        "stage": {
+          "requestedFrame": "277",
+          "displayedFrame": "277",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "680",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 619,
+        "elapsedMs": 788.3000001907349,
+        "stage": {
+          "requestedFrame": "618",
+          "displayedFrame": "618",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "745",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 113,
+        "elapsedMs": 736.2000007629395,
+        "stage": {
+          "requestedFrame": "113",
+          "displayedFrame": "113",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "680",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 487,
+        "elapsedMs": 739.3999996185303,
+        "stage": {
+          "requestedFrame": "486",
+          "displayedFrame": "486",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "686",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 731,
+        "elapsedMs": 738.0999994277954,
+        "stage": {
+          "requestedFrame": "731",
+          "displayedFrame": "731",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "683",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      },
+      {
+        "frame": 39,
+        "elapsedMs": 708,
+        "stage": {
+          "requestedFrame": "38",
+          "displayedFrame": "38",
+          "frameReady": "true",
+          "playback": "still",
+          "pausedPreview": "false",
+          "frameMs": "665",
+          "frameCached": "false"
+        },
+        "cache": {
+          "cacheStatus": "paused",
+          "cacheLoaded": "0",
+          "cacheTotal": "106570716"
+        },
+        "videoRequests": 0,
+        "frameRequests": 2
+      }
+    ],
+    "errors": [],
+    "network": {
+      "mbps": 4,
+      "latencyMs": 80
+    },
+    "methodology": "Real workbench, 1080p 30fps synthetic noisy H264, incomplete full video cache; cold target JPEG server cache; CDP network emulation. Interaction to frameReady plus two animation frames.",
+    "medianMs": 737.1500000953674,
+    "maxMs": 788.3000001907349
+  },
+  "trafficPriority": {
+    "checks": [
+      "Foreground navigation aborts an in-flight full-video range, holds it through frame display, and resumes after idle; no hidden media request during annotation",
+      "Explicit Play attaches video at the selected frame; real pause preserves position and releases remote media after the exact JPEG is ready"
+    ],
+    "errors": [],
+    "afterJump": {
+      "ranges": [
+        {
+          "range": "bytes=0-4194303",
+          "started": 3384.699999809265,
+          "aborted": 3397
+        }
+      ],
+      "stage": {
+        "requestedFrame": "150",
+        "displayedFrame": "150",
+        "frameReady": "true",
+        "playback": "still",
+        "pausedPreview": "false",
+        "frameMs": "884",
+        "frameCached": "false"
+      },
+      "cache": {
+        "cacheStatus": "paused",
+        "cacheLoaded": "0",
+        "cacheTotal": "106570716"
+      }
+    },
+    "status": "passed"
+  },
+  "wholeCacheRegression": {
+    "checks": [
+      "OPFS: full download, local frame pixel equality, offline jumps/play/pause, clear storage, retry and assignment isolation",
+      "IndexedDB: full download, local frame pixel equality, offline jumps/play/pause, clear storage, retry and assignment isolation",
+      "Pausing an in-flight range and resuming produces a complete playable local file"
+    ],
+    "errors": [],
+    "measurements": [
+      {
+        "target": 150,
+        "actual": 5.0165,
+        "main": 1052758650,
+        "reference": 1052758650,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 151,
+        "actual": 5.05,
+        "main": 1484179474,
+        "reference": 1484179474,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 1,
+        "actual": 0.05,
+        "main": 4106441030,
+        "reference": 4106441030,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 2,
+        "actual": 0.0835,
+        "main": 2281653162,
+        "reference": 2281653162,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 11,
+        "actual": 0.3835,
+        "main": 868576624,
+        "reference": 868576624,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 150,
+        "actual": 5.0165,
+        "main": 1052758650,
+        "reference": 1052758650,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 151,
+        "actual": 5.05,
+        "main": 1484179474,
+        "reference": 1484179474,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 1,
+        "actual": 0.05,
+        "main": 4106441030,
+        "reference": 4106441030,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 2,
+        "actual": 0.0835,
+        "main": 2281653162,
+        "reference": 2281653162,
+        "width": 320,
+        "height": 180
+      },
+      {
+        "target": 11,
+        "actual": 0.3835,
+        "main": 868576624,
+        "reference": 868576624,
+        "width": 320,
+        "height": 180
+      }
+    ],
+    "status": "passed"
+  },
+  "playbackAndQuota": {
+    "checks": [
+      "Quota failure retains online frame viewing and playback",
+      "Playback automatically pauses download; pausing playback resumes it; logout releases the complete file"
+    ],
+    "errors": [],
+    "status": "passed"
+  },
+  "frontendTests": 101
+}

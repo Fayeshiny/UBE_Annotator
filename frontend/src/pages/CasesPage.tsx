@@ -4,12 +4,15 @@ import { roleName, statusName, useApp } from "../App";
 import { api } from "../lib/api";
 import { fmtTime } from "../lib/time";
 import type { Case, User } from "../lib/types";
+import { preparationReady, preparationLabel } from "../components/VideoPreparationNotice";
 import AgreementView from "../components/AgreementView";
 
 export default function CasesPage() {
   const { user } = useApp();
   const isReviewer = user.role !== "annotator";
   const [cases, setCases] = useState<Case[]>([]);
+  const [deletedCases, setDeletedCases] = useState<{case_id: string; deleted_at: number}[]>([]);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [filter, setFilter] = useState("");
   const [showImport, setShowImport] = useState(false);
@@ -19,7 +22,8 @@ export default function CasesPage() {
   const load = useCallback(async () => {
     setCases(await api.get<Case[]>("/api/cases"));
     if (isReviewer) setUsers(await api.get<User[]>("/api/users"));
-  }, [isReviewer]);
+    if (user.role === "admin") setDeletedCases(await api.get<{case_id: string; deleted_at: number}[]>("/api/cases/deleted"));
+  }, [isReviewer, user.role]);
 
   useEffect(() => {
     load();
@@ -27,7 +31,7 @@ export default function CasesPage() {
 
   // 视频处理中时自动刷新
   useEffect(() => {
-    if (!cases.some((c) => c.media_status === "processing")) return;
+    if (!cases.some((c) => c.media_status === "processing" || c.media_status === "ready" && !preparationReady(c) && c.segment_preparation?.status !== "error")) return;
     const t = setTimeout(load, 3000);
     return () => clearTimeout(t);
   }, [cases, load]);
@@ -58,6 +62,7 @@ export default function CasesPage() {
         </span>
         <div className="spacer" />
         <input placeholder="搜索病例/术者/中心" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        {user.role === "admin" && <button className="btn" onClick={() => setShowDeleted(v => !v)}>{showDeleted ? "收起回收站" : `回收站（${deletedCases.length}）`}</button>}
         {user.role === "admin" && (
           <button className="btn primary" onClick={() => setShowImport((v) => !v)}>
             {showImport ? "收起" : "导入病例"}
@@ -65,6 +70,13 @@ export default function CasesPage() {
         )}
       </div>
       {err && <div className="error">{err}</div>}
+      {showDeleted && user.role === "admin" && <div className="panel">
+        <h3>病例回收站</h3>
+        <p className="muted small">已删除病例不参与任务、统计和导出。视频、子视频及标注保留在服务器上，恢复后继续使用原任务和标注。</p>
+        {deletedCases.length === 0 ? <p className="muted">回收站为空。</p> : <table className="table compact"><thead><tr><th>病例</th><th>删除时间</th><th>操作</th></tr></thead><tbody>
+          {deletedCases.map(c => <tr key={c.case_id}><td>{c.case_id}</td><td>{new Date(c.deleted_at*1000).toLocaleString()}</td><td><button className="btn small" onClick={() => act(() => api.post(`/api/cases/${encodeURIComponent(c.case_id)}/restore`))}>恢复病例</button></td></tr>)}
+        </tbody></table>}
+      </div>}
       {showImport && <ImportForm onDone={() => { setShowImport(false); load(); }} />}
       <table className="table">
         <thead>
@@ -102,9 +114,10 @@ export default function CasesPage() {
   );
 }
 
-function CaseRow({ c, users, act, onAgreement }: { c: Case; users: User[]; act: (fn: () => Promise<unknown>) => void; onAgreement: () => void }) {
+function CaseRow({ c, users, act, onAgreement }: { c: Case; users: User[]; act: (fn: () => Promise<unknown>) => Promise<void>; onAgreement: () => void }) {
   const { user } = useApp();
   const nav = useNavigate();
+  const [deleting, setDeleting] = useState(false);
   const [assignUser, setAssignUser] = useState("");
   const [assignRole, setAssignRole] = useState("primary");
   const [consensusId, setConsensusId] = useState("");
@@ -132,6 +145,8 @@ function CaseRow({ c, users, act, onAgreement }: { c: Case; users: User[]; act: 
         {c.media_status === "ready" ? (
           <>
             {fmtTime((c.video_duration_sec ?? 0) * 1000, false)} · {c.fps}fps
+            {!preparationReady(c) && <div className={c.segment_preparation?.status === "error" ? "error-text" : "muted"}>{preparationLabel(c)}</div>}
+            {c.segment_preparation?.status === "error" && <button className="btn tiny" onClick={() => act(() => api.post(`/api/cases/${encodeURIComponent(c.case_id)}/segments/prepare`))}>重试失败片段</button>}
           </>
         ) : (
           <span className={c.media_status === "error" ? "error-text" : "muted"} title={c.media_error ?? ""}>
@@ -156,11 +171,12 @@ function CaseRow({ c, users, act, onAgreement }: { c: Case; users: User[]; act: 
       <td>
         {as.map((a) => (
           <div key={a.id} className="assign-line">
-            <Link to={`/a/${a.id}`}>
+            {preparationReady(c) ? <Link to={`/a/${a.id}`}>
               {a.display_name}（{a.username}）
-            </Link>{" "}
+            </Link> : <span>{a.display_name}（{a.username}）</span>}{" "}
             <span className="muted small">{roleName(a.role)}</span>{" "}
             <span className={`badge st-${a.status}`}>{statusName(a.status)}</span>
+            {(a.segment_total ?? 0) > 1 && <span className="muted small"> 子任务 {a.segment_completed}/{a.segment_total}</span>}
             {a.consensus && <span className="badge">共识 {a.consensus.approved_count}/{a.consensus.required}</span>}
             {c.status === "locked" && c.final_assignment_id === a.id && <span className="badge gold">最终</span>}
           </div>
@@ -196,6 +212,15 @@ function CaseRow({ c, users, act, onAgreement }: { c: Case; users: User[]; act: 
         <span className={`badge st-${c.status}`}>{statusName(c.status)}</span>
       </td>
       <td className="actions">
+        {user.role === "admin" && <button className="btn small danger" disabled={deleting || c.status === "locked" || c.media_status === "processing"}
+          title={c.status === "locked" ? "请先解锁病例再删除" : c.media_status === "processing" ? "请等待原视频导入完成" : "移入回收站，保留视频与全部标注"}
+          onClick={async () => {
+            const typed = prompt(`将病例 ${c.case_id} 及其 ${as.length} 个任务移入回收站。病例将不再出现在标注任务、统计和导出中；视频和标注保留，可由管理员恢复。\n请输入完整病例编号确认：`);
+            if (typed == null) return;
+            setDeleting(true);
+            try { await act(() => api.del(`/api/cases/${encodeURIComponent(c.case_id)}`, { confirm_case_id: typed })); }
+            finally { setDeleting(false); }
+          }}>{deleting ? "删除中…" : "删除病例"}</button>}
         {as.length >= 2 && (
           <button className="btn small" onClick={onAgreement}>
             一致性
@@ -319,11 +344,12 @@ function MyTasks({ cases }: { cases: Case[] }) {
               <td>{roleName(a.role)}</td>
               <td>
                 <span className={`badge st-${a.status}`}>{statusName(a.status)}</span>
+            {(a.segment_total ?? 0) > 1 && <span className="muted small"> 子任务 {a.segment_completed}/{a.segment_total}</span>}
                 {c.status === "locked" && <span className="badge st-locked">已锁定</span>}
               </td>
-              <td>{c.media_status === "ready" ? fmtTime((c.video_duration_sec ?? 0) * 1000, false) : statusName(c.media_status)}</td>
+              <td>{c.media_status === "ready" ? <>{fmtTime((c.video_duration_sec ?? 0) * 1000, false)}{!preparationReady(c) && <div className="muted small">{preparationLabel(c)}</div>}</> : statusName(c.media_status)}</td>
               <td>
-                {c.media_status === "ready" && (
+                {preparationReady(c) && (
                   <Link className="btn primary small" to={`/a/${a.id}`}>
                     {a.status === "in_progress" || a.status === "returned" ? "开始标注" : "查看"}
                   </Link>

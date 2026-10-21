@@ -274,7 +274,14 @@ def init_db():
     if "locked_rule_snapshot_id" not in {r["name"] for r in conn.execute("PRAGMA table_info(cases)")}:
         # 不用当前规则回填旧病例，无法据此还原历史锁定时的规则。
         conn.execute("ALTER TABLE cases ADD COLUMN locked_rule_snapshot_id INTEGER")
+    columns = {r["name"] for r in conn.execute("PRAGMA table_info(cases)")}
+    if "deleted_at" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN deleted_at REAL")
+    if "deleted_by" not in columns:
+        conn.execute("ALTER TABLE cases ADD COLUMN deleted_by INTEGER REFERENCES users(id)")
     conn.executescript(CONSENSUS_SCHEMA)
+    from .segments import SCHEMA as SEGMENT_SCHEMA
+    conn.executescript(SEGMENT_SCHEMA)
     for k, v in DEFAULT_SETTINGS.items():
         conn.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, json.dumps(v)))
 

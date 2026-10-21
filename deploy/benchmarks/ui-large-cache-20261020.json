@@ -1,0 +1,123 @@
+{
+  "status": "passed",
+  "checks": [
+    "Selecting an in-flight JPEG prefetch reuses one un-aborted HTTP request; loading edits stay blocked and displayed pixels match the target frame.",
+    "A selected in-flight prefetch returning 429 retries once at foreground priority and displays the correct frame.",
+    "Rapid navigation away from a promoted slow prefetch cancels it; a late old response cannot replace the final requested frame.",
+    "The 8GiB device profile retains 21 actual 1080p images; revisiting the tracked early image reuses the same decoded object URL without HTTP or decoding.",
+    "After 40 actual 1080p JPEGs exceed the 256MiB decoded budget, old decoded URLs are released; the compressed layer serves a correct-pixel revisit without HTTP.",
+    "unknown memory uses a conservative decoded budget and still revisits an evicted 1080p frame from the compressed cache without HTTP.",
+    "low memory uses a conservative decoded budget and still revisits an evicted 1080p frame from the compressed cache without HTTP.",
+    "Leaving a workspace aborts requests and releases decoded URLs; returning fetches again rather than reusing old compressed data, and logout releases the new workspace."
+  ],
+  "measurements": [
+    {
+      "label": "same-target promotion",
+      "requests": [
+        {
+          "frame": 1,
+          "prefetch": true,
+          "aborted": false,
+          "finished": true
+        }
+      ],
+      "state": {
+        "requestedFrame": "1",
+        "displayedFrame": "1",
+        "frameReady": "true",
+        "playback": "still",
+        "pausedPreview": "false",
+        "frameMs": "294",
+        "frameCached": "false"
+      }
+    },
+    {
+      "label": "selected busy prefetch gets foreground retry",
+      "requests": [
+        {
+          "frame": 1,
+          "prefetch": true,
+          "aborted": false,
+          "finished": true
+        },
+        {
+          "frame": 1,
+          "prefetch": false,
+          "aborted": false,
+          "finished": true
+        }
+      ]
+    },
+    {
+      "label": "high memory 21-frame decoded retention",
+      "deviceMemoryInjected": 8,
+      "deviceMemoryActual": 8,
+      "deviceMemoryType": "number",
+      "trackedFrame": 1,
+      "framesVisited": 21,
+      "retainedOriginalDecodedURL": true,
+      "requestsBeforeRevisit": 2,
+      "requestsAfterRevisit": 2,
+      "additionalHTTPRequests": 0
+    },
+    {
+      "label": "high memory 40-frame eviction and compressed replay",
+      "deviceMemoryInjected": 8,
+      "deviceMemoryActual": 8,
+      "deviceMemoryType": "number",
+      "trackedFrame": 1,
+      "framesVisited": 40,
+      "originalDecodedURLReleased": true,
+      "requestsBeforeRevisit": 2,
+      "requestsAfterRevisit": 2,
+      "additionalHTTPRequests": 0,
+      "pixels": {
+        "hash": 1959976329,
+        "width": 1920,
+        "height": 1080
+      }
+    },
+    {
+      "label": "unknown memory decoded budget and compressed replay",
+      "deviceMemoryInjected": null,
+      "deviceMemoryActual": null,
+      "deviceMemoryType": "undefined",
+      "trackedFrame": 1,
+      "retainedFrames": 14,
+      "evictedAtFrames": 20,
+      "requestsBeforeRevisit": 2,
+      "requestsAfterRevisit": 2,
+      "additionalHTTPRequests": 0
+    },
+    {
+      "label": "low memory decoded budget and compressed replay",
+      "deviceMemoryInjected": 4,
+      "deviceMemoryActual": 4,
+      "deviceMemoryType": "number",
+      "trackedFrame": 1,
+      "retainedFrames": 10,
+      "evictedAtFrames": 20,
+      "requestsBeforeRevisit": 2,
+      "requestsAfterRevisit": 2,
+      "additionalHTTPRequests": 0
+    },
+    {
+      "label": "workspace exit and logout cleanup",
+      "liveDecodedURLsAfterLogout": 0,
+      "requestsToInitialFrameAfterReenter": 2
+    }
+  ],
+  "pageErrors": [],
+  "setup": {
+    "date": "2026-10-20",
+    "browser": "headless system Google Chrome via Playwright Core",
+    "asset": "index-BkPQ9zRq.js",
+    "isolatedSyntheticData": true,
+    "nativeJPEGSize": [
+      1920,
+      1080
+    ],
+    "capacityTestPrefetch": "HTTP prefetch deliberately receives 429; compressed cache reuse remains enabled",
+    "note": "Frame 1 is tracked because frame 0 remains a predicted sample target and is preferentially retained. Cumulative requests include the initial rejected background request and successful foreground load; revisit adds zero HTTP requests."
+  }
+}

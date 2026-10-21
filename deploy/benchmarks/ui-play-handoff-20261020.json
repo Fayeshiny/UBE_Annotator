@@ -1,0 +1,141 @@
+{
+  "status": "passed",
+  "checks": [
+    "Delayed video preparation retains the loaded target JPEG with compact status and blocked edits; playback reveals only target video.",
+    "Idle preparation positions the hidden paused video without autoplay; Play reuses it without a second currentTime seek.",
+    "Play during pending idle preparation reuses the existing target request and performs one seek.",
+    "Rapid frame changes cancel obsolete idle timers; only the final target prepares, without autoplay.",
+    "Changing target during a pending idle preparation cancels its queued seek; late metadata cannot restore or play the old target.",
+    "Cancel during video preparation retains the current image, restores editing, and stale completion never autoplays.",
+    "Rejected play preserves the exact still and restores editing; a subsequent Play retries successfully.",
+    "Leaving a workspace during preparation isolates the new task; late video data cannot play or change its target."
+  ],
+  "pageErrors": [],
+  "measurements": [
+    {
+      "label": "cold play waiting metadata",
+      "state": {
+        "requestedFrame": "450",
+        "displayedFrame": "450",
+        "frameReady": "false",
+        "playback": "starting",
+        "pausedPreview": "false",
+        "frameMs": "80",
+        "frameCached": "false"
+      },
+      "media": {
+        "time": 0,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "ready": 0,
+        "visibility": "hidden",
+        "writes": [],
+        "plays": []
+      },
+      "pixel": [
+        112,
+        112,
+        112,
+        255
+      ]
+    },
+    {
+      "label": "prepared play has no second seek",
+      "before": {
+        "time": 10.0165,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "ready": 4,
+        "visibility": "hidden",
+        "writes": [
+          {
+            "seconds": 10.0165,
+            "at": 1004.9000005722046,
+            "src": "http://127.0.0.1:18028/api/cases/PLAY_A/video"
+          }
+        ],
+        "plays": []
+      },
+      "after": {
+        "time": 10.084578,
+        "paused": false,
+        "ended": false,
+        "seeking": false,
+        "ready": 4,
+        "visibility": "visible",
+        "writes": [
+          {
+            "seconds": 10.0165,
+            "at": 1004.9000005722046,
+            "src": "http://127.0.0.1:18028/api/cases/PLAY_A/video"
+          }
+        ],
+        "plays": [
+          {
+            "seconds": 10.0165,
+            "at": 1056.1999998092651
+          }
+        ]
+      }
+    },
+    {
+      "label": "Play during pending idle preparation",
+      "state": {
+        "requestedFrame": "300",
+        "displayedFrame": "300",
+        "frameReady": "false",
+        "playback": "starting",
+        "pausedPreview": "false",
+        "frameMs": "17",
+        "frameCached": "false"
+      },
+      "media": {
+        "time": 0,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "ready": 0,
+        "visibility": "hidden",
+        "writes": [],
+        "plays": []
+      },
+      "pixel": [
+        75,
+        75,
+        75,
+        255
+      ]
+    },
+    {
+      "label": "cancel pending play",
+      "state": {
+        "requestedFrame": "450",
+        "displayedFrame": "450",
+        "frameReady": "false",
+        "playback": "starting",
+        "pausedPreview": "false",
+        "frameMs": "14",
+        "frameCached": "false"
+      },
+      "media": {
+        "time": 0,
+        "paused": true,
+        "ended": false,
+        "seeking": false,
+        "ready": 0,
+        "visibility": "hidden",
+        "writes": [],
+        "plays": []
+      },
+      "pixel": [
+        112,
+        112,
+        112,
+        255
+      ]
+    }
+  ],
+  "build": "/assets/index-D7MA9KJH.js"
+}
