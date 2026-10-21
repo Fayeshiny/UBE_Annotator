@@ -120,6 +120,59 @@ chmod 700 data-backups
 
 ## 另一台服务器安装
 
+### Ubuntu 22.04 / Google Cloud 一键配置环境
+
+在 VM 上以运行平台的普通用户执行（不要使用 `sudo bash`）：
+
+```bash
+git clone https://github.com/Fayeshiny/UBE_Annotator.git
+cd UBE_Annotator
+bash scripts/setup-environment.sh --sam31
+```
+
+脚本通过 apt 安装 FFmpeg、FFprobe、编译工具等系统依赖（需要 sudo），
+通过 [uv](https://docs.astral.sh/uv/) 安装独立 Python 3.12 和 `backend/.venv`，
+通过 [nvm](https://github.com/nvm-sh/nvm) 安装 Node.js 22，安装后端并构建前端。
+`--sam31` 额外安装 CUDA 12.8 的 PyTorch 2.10.0 / torchvision 0.25.0、
+固定提交的 SAM 源码及推理依赖，并检查 CUDA 张量运算。
+不需要真实分割时可以省略 `--sam31`；管理员已装好系统工具时可加 `--skip-system`。
+
+首次运行创建仅当前用户可读的 `deploy/production.env`，默认监听 `127.0.0.1:8002`、
+使用 mock 分割。已有配置、数据库和权重不会被覆盖。脚本不创建管理员、不启动服务、
+不修改防火墙，也不下载模型权重。若已有正式服务运行，会要求先停服。
+安装依赖需要访问 Ubuntu 软件源、Astral、GitHub、npm、PyPI；SAM 还需要 PyTorch 下载源。
+
+SAM 3.1 权重需单独取得（主 README 提供下载方式），然后编辑配置：
+
+```bash
+SSI_SAM_BACKEND=sam3.1
+SSI_SAM_CHECKPOINT=/absolute/path/to/sam3.1_multiplex.pt
+CUDA_VISIBLE_DEVICES=0
+SSI_SAM_USE_FA3=0
+```
+
+单 GPU VM 使用 GPU 0，不能照搬旧服务器 GPU 2 的配置。
+Git 克隆不包含旧服务器的数据库、病例视频、模型权重或私有配置；
+如需迁移，请先按备份与恢复流程处理，再启动服务。
+
+新建空库并启动：
+
+```bash
+set -a
+source deploy/production.env
+set +a
+backend/.venv/bin/ssi-annotator init --admin admin
+bash scripts/install-production-service.sh
+sudo loginctl enable-linger "$USER"
+systemctl --user start ssi-annotator.service
+curl --fail http://127.0.0.1:8002/api/health
+```
+
+先通过 VS Code 的 Ports 面板转发 VM 的 8002 端口，在本机访问转发后的 HTTP 地址。
+这时保留 `SSI_COOKIE_SECURE=0`；正式 HTTPS 入口配置完成后改为 `1` 并重启服务。
+
+### 手动安装
+
 需要 Python ≥3.11、Node ≥20、FFmpeg、`flock` 和用户 systemd。
 按主 README 安装后端及需要的 SAM 依赖，构建前端，然后：
 

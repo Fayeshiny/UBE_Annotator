@@ -73,6 +73,10 @@
 
 ## 部署
 
+Ubuntu / Google Cloud VM 可运行 `bash scripts/setup-environment.sh --sam31`
+安装环境及构建前端（需要 sudo；权重另行下载）。详细步骤见
+[一键配置环境](deploy/README.md#ubuntu-2204--google-cloud-一键配置环境)。
+
 本服务器已配置独立正式实例、systemd 自启动与备份脚本，访问地址和操作步骤见
 [服务器部署与运维](deploy/README.md)。正式实例使用 `data-production/` 和 8002 端口。
 
