@@ -155,6 +155,27 @@ SSI_SAM_USE_FA3=0
 Git 克隆不包含旧服务器的数据库、病例视频、模型权重或私有配置；
 如需迁移，请先按备份与恢复流程处理，再启动服务。
 
+环境安装并取得权重后，也可以用一个脚本配置 SAM 3.1 并启动持久服务：
+
+```bash
+bash scripts/start-production-sam31.sh
+# 权重不在默认目录时：
+bash scripts/start-production-sam31.sh --checkpoint /absolute/path/to/sam3.1_multiplex.pt --gpu 0
+```
+
+默认寻找 `models/sam3.1/sam3.1_multiplex.pt`，或沿用已有配置中的权重路径和 GPU。
+脚本检查 CUDA、前端构建及端口，更新 `deploy/production.env` 中的 SAM 设置，
+保留已有数据目录、监听地址、端口及 HTTPS cookie 设置。
+首次交互式创建 `admin`；已有同名账号不会改密码。默认使用独立的 `data-production/`，
+不会自动迁移 `data-dev/` 的账号和病例。
+脚本安装并启用 systemd 用户服务，必要时通过 sudo 启用 linger，最后检查健康接口。
+运行后退出 SSH 或重启 VM，服务仍会自动启动；SAM 模型按需加载，健康检查不代表推理已经验证。
+若服务已在运行，脚本会退出；需要更新配置时，先在无标注/导入/推理任务时执行
+`systemctl --user stop ssi-annotator.service`，再运行脚本。
+脚本不会替换属于其他代码目录的同名服务。
+
+也可以手动执行下面的步骤：
+
 新建空库并启动：
 
 ```bash
